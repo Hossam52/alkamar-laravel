@@ -15,7 +15,7 @@ return new class extends Migration
             $table->dropColumn('qr_code');
              $table->unsignedBigInteger('created_by')->after('stage_id');
              $table->string('qr_code_path')->after('gender')->default('');
-             $table->timestamp('created_at')->after('qr_code_path');
+            //  $table->timestamp('created_at')->after('qr_code_path');
 
              $table->foreign('created_by')->references('id')->on('users');
 
