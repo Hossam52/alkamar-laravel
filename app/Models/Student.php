@@ -108,6 +108,12 @@ class Student extends Model
         'code',
         'name',
         'gender',
+        'school',
+        'father_phone',
+        'mother_phone',
+        'student_phone',
+        'whatsapp',
+        'address',
         'qr_code'
     ];
 }
