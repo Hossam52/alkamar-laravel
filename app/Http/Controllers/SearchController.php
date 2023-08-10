@@ -26,7 +26,7 @@ class SearchController extends Controller
         elseif($code){
             $stds = $stds ->where('code',$code);
         }
-        $stds = $stds->get();
+        $stds = $stds->get()->sortBy('stage_id');
 
         return response()->json([
             'students'=> StudentResource::collection($stds),
