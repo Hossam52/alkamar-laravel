@@ -44,6 +44,13 @@ class Student extends Model
         });
         return $res;
     }
+    public function studentAllHomeworks(){
+        $homeworkRes = Homework::where('student_id', $this->id)->select('id as homework_id', 'student_id', 'homework_status', 'lec_id');
+        $res = Lecture::where('stage_id',$this->stage_id)->leftJoinSub($homeworkRes, 'homeworkRes', function ($join) {
+            $join->on('lectures.id', '=', 'homeworkRes.lec_id');
+        });
+        return $res;
+    }
     public function scopeByStage($query,$stage_id){
         if($stage_id){
             return $query->where('stage_id',$stage_id)->orderBy('code');

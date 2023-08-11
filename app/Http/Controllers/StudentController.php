@@ -6,12 +6,14 @@ use App\Http\Resources\AllStudentWithGradesResource;
 use App\Http\Resources\AttendanceResource;
 use App\Http\Resources\ExamResource;
 use App\Http\Resources\GradeResource;
+use App\Http\Resources\HomeworkResource;
 use App\Http\Resources\LectureResource;
 use App\Http\Resources\StudentResource;
 use App\Http\Resources\UserResource;
 use App\Models\Attendance;
 use App\Models\Exam;
 use App\Models\Grade;
+use App\Models\Homework;
 use App\Models\Lecture;
 use App\Models\Stages\Stage;
 use App\Models\Student;
@@ -101,6 +103,33 @@ class StudentController extends Controller
             'lectures' => LectureResource::collection($lectures),
         ], );
     }
+    
+    public function studentHomeworksInStage(Request $request)
+    {
+        $request->validate([
+            'stage_id' => 'required|exists:stages,id'
+        ]);
+
+
+        $stage_id = $request->stage_id;
+
+        $students = Student::byStage($stage_id)->get();
+        $allStudents = $students->map(function ($student) {
+
+            $res = $student->studentAllHomeworks()->get();
+            $homeworks = HomeworkResource::collection($res);
+
+            $student['homeworks'] = $homeworks;
+            return $student;
+        });
+
+          $lectures = Lecture::where('stage_id', $stage_id)->get();
+
+        return response()->json([
+            'students' => AllStudentWithGradesResource::collection($allStudents),
+            'lectures' => LectureResource::collection($lectures),
+        ], );
+    }
 
     public function studentProfile(Request $request)
     {
@@ -178,6 +207,7 @@ class StudentController extends Controller
 
         $allAttendances = Attendance::where('student_id', $studentId)->get(['lec_id']);
         $allAbsense = Lecture::where('stage_id', $student->stage_id)->where('lecture_date', '>=', \Carbon\Carbon::parse($student->created_at)->format('Y/m/d'))->whereNotIn('id', $allAttendances)->get();
+        $allHomeworks = Homework::where('student_id', $studentId)->get();
 
 
         return response()->json([
@@ -185,6 +215,7 @@ class StudentController extends Controller
             'grades' => GradeResource::collection($grades),
             'attendance_late' => AttendanceResource::collection($late),
             'absence' => LectureResource::collection($allAbsense),
+            'homeworks' => HomeworkResource::collection($allHomeworks),
         ]);
     }
 
@@ -206,7 +237,7 @@ class StudentController extends Controller
 
             'code' => 'unique:students,code,' . $request->student_id,
             'name' => 'string',
-            'school' => 'string|nullable',
+            'school' => 'string|nullable|',
             'father_phone' => 'string|nullable',
             'mother_phone' => 'string|nullable',
             'student_phone' => 'string|nullable',

@@ -7,7 +7,7 @@ use App\Http\Controllers\{
     UserController, StudentController,
     ExamController, GradeController,
     LectureController, AttendanceController,
-    SearchController,
+    SearchController,HomeworkController
 };
 use App\Http\Controllers\PDF\PDFController;
 use App\Http\Controllers\Stages\{StageController};
@@ -36,6 +36,7 @@ Route::middleware(AddResponseStatus::class)->group(function () {
             Route::post('/create', [StudentController::class, 'store']);
             Route::post('/list', [StudentController::class, 'studentExamsInStage']);
             Route::post('/attendance', [StudentController::class, 'studentAttendancesInStage']);
+            Route::post('/homeworks', [StudentController::class, 'studentHomeworksInStage']);
             Route::post('/profile', [StudentController::class, 'show']);
             Route::post('/update', [StudentController::class, 'update']);
             Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
@@ -62,6 +63,9 @@ Route::middleware(AddResponseStatus::class)->group(function () {
 
         Route::prefix('attendances')->group(function () {
             Route::post('/store', [AttendanceController::class, 'store']);
+        });
+        Route::prefix('homeworks')->group(function () {
+            Route::post('/store', [HomeworkController::class, 'store']);
         });
 
         Route::prefix('search')->group(function () {
