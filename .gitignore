@@ -1,4 +1,5 @@
 *.bat
+/public/*.pdf
 /public/qrcodes/*
 /.phpunit.cache
 /node_modules
