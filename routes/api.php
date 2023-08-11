@@ -37,6 +37,7 @@ Route::middleware(AddResponseStatus::class)->group(function () {
             Route::post('/list', [StudentController::class, 'studentExamsInStage']);
             Route::post('/attendance', [StudentController::class, 'studentAttendancesInStage']);
             Route::post('/profile', [StudentController::class, 'show']);
+            Route::post('/update', [StudentController::class, 'update']);
             Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
         });
         Route::prefix('exams')->group(function () {
@@ -44,6 +45,8 @@ Route::middleware(AddResponseStatus::class)->group(function () {
             Route::get('/stats', [ExamController::class, 'examStatistics']);
             Route::get('/collectiveExams', [ExamController::class, 'collectiveExams']);
             Route::post('/create', [ExamController::class, 'store']);
+            Route::post('/update', [ExamController::class, 'update']);
+            Route::post('/delete', [ExamController::class, 'destroy']);
         });
 
         Route::prefix('grades')->group(function () {
@@ -52,6 +55,8 @@ Route::middleware(AddResponseStatus::class)->group(function () {
 
         Route::prefix('lectures')->group(function () {
             Route::post('/store', [LectureController::class, 'store']);
+            Route::post('/update', [LectureController::class, 'update']);
+            Route::post('/delete', [LectureController::class, 'destroy']);
             Route::get('/stats', [LectureController::class, 'lectureStats']);
         });
 

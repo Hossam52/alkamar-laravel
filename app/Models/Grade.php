@@ -11,6 +11,9 @@ class Grade extends Model
     public function exam(){
         return $this->belongsTo(Exam::class);
     }
+    public function student(){
+        return $this->belongsTo(Student::class);
+    }
     public function percent(int $examGrade){
         return (double)($this->grade / $examGrade)*100;
     }

@@ -70,9 +70,9 @@ class StudentController extends Controller
 
         $students = Student::byStage($stage_id)->get();
         $allStudents = $students->map(function ($student) {
-            
+
             $res = $student->studentAllAttendancesGrades()->get();
-          
+
             // foreach($res as $at){
             //     echo $at['attendance_id'].'';
             //     $att =new Attendance([
@@ -82,7 +82,7 @@ class StudentController extends Controller
             //         'lec_id'=>$at['lec_id'],
             //     ]);
             //     $arr[] = new AttendanceResource($att);
-                
+
             // }
             // $student['test']=$arr;
             // echo '\\n';
@@ -94,7 +94,7 @@ class StudentController extends Controller
         $males = Student::byStage($stage_id)->byMale()->get();
         $females = Student::byStage($stage_id)->byFemale()->get();
 
-        $lectures = Lecture:: where('stage_id', $stage_id)->get();
+        $lectures = Lecture::where('stage_id', $stage_id)->get();
 
         return response()->json([
             'students' => AllStudentWithGradesResource::collection($allStudents),
@@ -108,15 +108,15 @@ class StudentController extends Controller
             'student_id' => 'required_without:student_code|exists:students,id|nullable',
             'student_code' => 'required_without:student_id|exists:students,code|nullable',
         ]);
-    
+
         $student = null;
-    
+
         if ($request->has('student_id')) {
             $student = Student::where('id', $request->student_id)->first();
         } elseif ($request->has('student_code')) {
             $student = Student::where('code', $request->student_code)->first();
         }
-    
+
         if ($student) {
             return response()->json(['student' => new StudentResource($student)]);
         } else {
@@ -177,14 +177,14 @@ class StudentController extends Controller
         $late = Attendance::where('student_id', $studentId)->where('attend_status', 2)->get();
 
         $allAttendances = Attendance::where('student_id', $studentId)->get(['lec_id']);
-        $allAbsense = Lecture::where('stage_id', $student->stage_id)->where('lecture_date','>=',\Carbon\Carbon::parse($student->created_at)->format('Y/m/d'))-> whereNotIn('id', $allAttendances)->get();
+        $allAbsense = Lecture::where('stage_id', $student->stage_id)->where('lecture_date', '>=', \Carbon\Carbon::parse($student->created_at)->format('Y/m/d'))->whereNotIn('id', $allAttendances)->get();
 
 
         return response()->json([
             'student' => new StudentResource($student),
             'grades' => GradeResource::collection($grades),
             'attendance_late' => AttendanceResource::collection($late),
-            'absence' => LectureResource::collection( $allAbsense),
+            'absence' => LectureResource::collection($allAbsense),
         ]);
     }
 
@@ -201,7 +201,34 @@ class StudentController extends Controller
      */
     public function update(Request $request, Student $student)
     {
-        //
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+
+            'code' => 'unique:students,code,' . $request->student_id,
+            'name' => 'string',
+            'school' => 'string|nullable',
+            'father_phone' => 'string|nullable',
+            'mother_phone' => 'string|nullable',
+            'student_phone' => 'string|nullable',
+            'whatsapp' => 'string|nullable',
+            'address' => 'string|nullable',
+        ]);
+        $student = Student::find($request->student_id);
+        // Update the student's attributes only if they are present in the request
+        $fillableAttributes = ['code', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address'];
+
+        foreach ($fillableAttributes as $attribute) {
+            if ($request->has($attribute)) {
+                $student->$attribute = $request->input($attribute);
+            }
+        }
+
+        // Save the updated student
+        $student->save();
+
+        return response()->json(
+            ['student' => new StudentResource($student)]
+        );
     }
 
     /**

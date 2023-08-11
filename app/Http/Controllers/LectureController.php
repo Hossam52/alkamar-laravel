@@ -46,24 +46,25 @@ class LectureController extends Controller
             'lecture' => new LectureResource($lec),
         ], 201);
     }
-    public function lectureStats(Request $request){
+    public function lectureStats(Request $request)
+    {
         $request->validate([
-            'lecture_id'=>'required|exists:lectures,id',
+            'lecture_id' => 'required|exists:lectures,id',
         ]);
-        $lec = Lecture::where('id',$request->lecture_id)->first();
-        $lectureAttendances =$lec->attedances()-> count();
-        $attends =$lec->attedances()->where('attend_status',1)->count();//For attended students
-        $late =$lec->attedances()->where('attend_status',2)->count();//For late students
-        $forgot =$lec->attedances()->where('attend_status',3)->count();//For forgot book
+        $lec = Lecture::where('id', $request->lecture_id)->first();
+        $lectureAttendances = $lec->attedances()->count();
+        $attends = $lec->attedances()->where('attend_status', 1)->count(); //For attended students
+        $late = $lec->attedances()->where('attend_status', 2)->count(); //For late students
+        $forgot = $lec->attedances()->where('attend_status', 3)->count(); //For forgot book
         $totalStudentsCount = Student::byStage($lec->stage_id)->count();
         $abscence = $totalStudentsCount - $lectureAttendances;
         return response()->json([
-            'total_attendance_count'=>$lectureAttendances,
-            'attends_count'=>$attends,
-            'late_count'=>$late,
-            'forgot_book_count'=>$forgot,
-            'absence_count'=>$abscence,
-            'students_count'=>$totalStudentsCount,
+            'total_attendance_count' => $lectureAttendances,
+            'attends_count' => $attends,
+            'late_count' => $late,
+            'forgot_book_count' => $forgot,
+            'absence_count' => $abscence,
+            'students_count' => $totalStudentsCount,
         ]);
     }
     /**
@@ -87,14 +88,28 @@ class LectureController extends Controller
      */
     public function update(Request $request, Lecture $lecture)
     {
-        //
+        $request->validate([
+            'lecture_id' => 'required|exists:lectures,id',
+            'title' => 'nullable',
+            'lecture_date' => 'nullable'
+        ]);
+
+        $lecture = Lecture::find($request->lecture_id);
+        if(isset($request->title)) $lecture->title = $request->title;
+        if(isset($request->lecture_date)) $lecture->lecture_date = $request->lecture_date;
+        $lecture->save();
+
+        return response()->json(['lecture'=>new LectureResource($lecture)]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Lecture $lecture)
+    public function destroy(Request $request)
     {
-        //
+        $request->validate(['lecture_id'=>'required|exists:lectures,id']);
+        $lecture = Lecture::find($request->lecture_id);
+        $lecture->delete();
+        return response()->json(['message'=>'تم حذف المحاضرة بنجاح']);
     }
 }
