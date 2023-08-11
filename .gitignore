@@ -1,3 +1,4 @@
+*.bat
 /public/qrcodes/*
 /.phpunit.cache
 /node_modules
