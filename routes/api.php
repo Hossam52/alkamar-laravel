@@ -44,7 +44,7 @@ Route::middleware(AddResponseStatus::class)->group(function () {
         Route::prefix('exams')->group(function () {
             Route::get('/', [ExamController::class, 'allExams']);
             Route::get('/stats', [ExamController::class, 'examStatistics']);
-            Route::get('/collectiveExams', [ExamController::class, 'collectiveExams']);
+            Route::post('/collectiveExams', [ExamController::class, 'collectiveExams']);
             Route::post('/create', [ExamController::class, 'store']);
             Route::post('/update', [ExamController::class, 'update']);
             Route::post('/delete', [ExamController::class, 'destroy']);
