@@ -177,7 +177,7 @@ class StudentController extends Controller
             'whatsapp' => 'string|nullable',
             'address' => 'string|nullable',
             'gender' => 'required',
-            'problems' => 'string',
+            'problems' => 'string|nullable',
         ]);
 
         $studentData = $request->all();
