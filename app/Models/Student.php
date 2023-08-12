@@ -115,6 +115,7 @@ class Student extends Model
         'code',
         'name',
         'gender',
+        'problems',
         'school',
         'father_phone',
         'mother_phone',

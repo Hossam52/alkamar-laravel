@@ -177,6 +177,7 @@ class StudentController extends Controller
             'whatsapp' => 'string|nullable',
             'address' => 'string|nullable',
             'gender' => 'required',
+            'problems' => 'string',
         ]);
 
         $studentData = $request->all();
@@ -234,7 +235,6 @@ class StudentController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-
             'code' => 'unique:students,code,' . $request->student_id,
             'name' => 'string',
             'school' => 'string|nullable|',
@@ -243,10 +243,11 @@ class StudentController extends Controller
             'student_phone' => 'string|nullable',
             'whatsapp' => 'string|nullable',
             'address' => 'string|nullable',
+            'prblems'=>'string|nullable'
         ]);
         $student = Student::find($request->student_id);
         // Update the student's attributes only if they are present in the request
-        $fillableAttributes = ['code', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address'];
+        $fillableAttributes = ['code', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address','problems'];
 
         foreach ($fillableAttributes as $attribute) {
             if ($request->has($attribute)) {
