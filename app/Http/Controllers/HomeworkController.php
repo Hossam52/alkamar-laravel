@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\HomeworkResource;
+use App\Models\Attendance;
 use App\Models\Homework;
 use App\Models\Lecture;
 use App\Models\Student;
@@ -44,6 +45,11 @@ class HomeworkController extends Controller
         $lec = Lecture::find($request->lec_id);
         if ($lec->stage_id != $std->stage_id) {
             return response()->json(['message' => 'هذا الطالب غير مسجل في تلك المرحلة'], 400);
+        }
+
+        $attendance = Attendance::where('student_id',$std->id)->where('lec_id',$lec->id)->first();
+        if(!$attendance){
+            return response()->json(['message'=>'يجب تحضير الطالب اولا في المحاضرة قبل اضافة الواجب'],400);
         }
         $homeworkRecord = Homework::byLectureId($request->lec_id)->where('student_id', $request->student_id)->first();
 
