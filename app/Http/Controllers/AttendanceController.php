@@ -34,11 +34,15 @@ class AttendanceController extends Controller
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'lec_id' => 'required|exists:lectures,id',
-            'attend_status' => 'integer'
+            'attend_status' => 'integer|nullable'
         ]);
         $attendance = Attendance::byLectureId($request->lec_id) ->where('student_id',$request->student_id)->first();
 
         if($attendance){
+            if(!$request->has('attend_status')){
+                $attendance->delete();
+                return response()->json(['message'=>'تم الغاء حضور الطالب بنجاح']);
+            }
             return response()->json(['message'=>'تم تسجيل هذا الطالب من قبل في هذه المحاضرة'],400);
         }
         
@@ -50,7 +54,11 @@ class AttendanceController extends Controller
         if($lec->stage_id !=$std->stage_id){
             return response()->json(['message'=>'هذا الطالب غير مسجل في تلك المرحلة'],400);
         }
-
+        if(!$request->has('attend_status')){
+            return response()->json([
+                'message'=>'هذا الطالب لم يتم تسجيل حضوره من قبل'
+            ],400);
+        }
         $arr = $request->all();
         $arr['assistant_id'] = $request->user()->id;
         $attendance_record = new Attendance($arr);
