@@ -44,7 +44,9 @@ class AttendanceController extends Controller
         
         $lec = Lecture::where('id',$request->lec_id)->first();
         $std = Student::where('id',$request->student_id)->first();
-
+        if($std->isDisabled()){
+            return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
+        }
         if($lec->stage_id !=$std->stage_id){
             return response()->json(['message'=>'هذا الطالب غير مسجل في تلك المرحلة'],400);
         }

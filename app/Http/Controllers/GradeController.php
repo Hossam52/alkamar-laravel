@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\GradeResource;
 use App\Models\Exam;
 use App\Models\Grade;
+use App\Models\Student;
 use Illuminate\Http\Request;
 
 class GradeController extends Controller
@@ -35,6 +36,11 @@ class GradeController extends Controller
             'student_id'=>'required|exists:students,id',
             'grade'=>'required|decimal:0,2'
         ]);
+        $std = Student::find($request->student_id);
+        if($std->isDisabled()){
+            return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
+        }
+     
         $grade = Grade::where('exam_id',$request->exam_id)->where('student_id',$request->student_id)->first();
 
         // if($grade){

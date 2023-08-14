@@ -58,13 +58,14 @@ class ExamController extends Controller
         $total = 0;
 
         foreach ($grades as $grade) {
-            $found = false;
             $percent = $grade->grade; // percent($exam->max_grade);
+            $student = $grade->student()->first();
+            if($student->isDisabled()) continue;
             foreach ($arr as &$percentileRange) {
                 if ($percent >= $percentileRange['from'] && $percent <= $percentileRange['to']) {
                     $percentileRange['count']++;
                     $percentileRange['students'][] = array(
-                        'student' => new StudentResource($grade->student()->first()),
+                        'student' => new StudentResource($student),
                         'grade' => new GradeResource($grade),
                     );
                     $total++;
@@ -75,11 +76,11 @@ class ExamController extends Controller
             unset($percentileRange); // Unset the reference to avoid unintended changes
 
         }
-        $studentsInStage = Student::where('stage_id', $exam->stage_id)->count();
-        $studentsNotTakeExam = $studentsInStage - $grades->count();
+        $studentsInStage = Student::where('stage_id', $exam->stage_id)->where('student_status',1)-> count();
+        $studentsNotTakeExam = $studentsInStage - $total;
         return response()->json([
             'exam_absence_count' => $studentsNotTakeExam,
-            'total_students_count' => $grades->count(),
+            'total_students_count' => $total,
             'stats' => $arr,
         ]);
     }

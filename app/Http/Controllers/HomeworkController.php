@@ -36,26 +36,31 @@ class HomeworkController extends Controller
             'lec_id' => 'required|exists:lectures,id',
             'homework_status' => 'required|integer'
         ]);
-        $attendance = Homework::byLectureId($request->lec_id) ->where('student_id',$request->student_id)->first();
-
-        if($attendance){
-            return response()->json(['message'=>'تم تسجيل هذا الطالب من قبل في هذه المحاضرة'],400);
-        }
-        
-        $lec = Lecture::find($request->lec_id);
         $std = Student::find($request->student_id);
-
-        if($lec->stage_id !=$std->stage_id){
-            return response()->json(['message'=>'هذا الطالب غير مسجل في تلك المرحلة'],400);
+        if($std->isDisabled()){
+            return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
         }
 
-        $arr = $request->all();
-        $arr['assistant_id'] = $request->user()->id;
-        $homeworkRecord = new Homework($arr);
-        $homeworkRecord->save();
+        $lec = Lecture::find($request->lec_id);
+        if ($lec->stage_id != $std->stage_id) {
+            return response()->json(['message' => 'هذا الطالب غير مسجل في تلك المرحلة'], 400);
+        }
+        $homeworkRecord = Homework::byLectureId($request->lec_id)->where('student_id', $request->student_id)->first();
+
+        if ($homeworkRecord) {
+            $homeworkRecord->homework_status = $request->homework_status;
+            $homeworkRecord->save();
+        } else {
+
+
+            $arr = $request->all();
+            $arr['assistant_id'] = $request->user()->id;
+            $homeworkRecord = new Homework($arr);
+            $homeworkRecord->save();
+        }
 
         return response()->json([
-            'message' => 'تم تسجيل الواجب بنجاح',          
+            'message' => 'تم تسجيل الواجب بنجاح',
             'homework' => new HomeworkResource($homeworkRecord)
         ]);
 
@@ -93,4 +98,3 @@ class HomeworkController extends Controller
         //
     }
 }
-
