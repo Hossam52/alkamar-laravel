@@ -63,6 +63,13 @@ class Student extends Model
         }
         return $query;
     }
+    public function scopeByStatus($query, $student_status)
+    {
+        if (isset($student_status)) {
+            return $query->where('student_status',$student_status);
+        }
+        return $query;
+    }
     public function scopeByMale($query)
     {
         return $query->where('gender', 'male');

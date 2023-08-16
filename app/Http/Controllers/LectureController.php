@@ -51,13 +51,20 @@ class LectureController extends Controller
         $request->validate([
             'lecture_id' => 'required|exists:lectures,id',
         ]);
-        $lec = Lecture::where('id', $request->lecture_id)->first();
-        $lectureAttendances = $lec->attedances()->count();
-        $attends = $lec->attedances()->where('attend_status', 1)->count(); //For attended students
-        $late = $lec->attedances()->where('attend_status', 2)->count(); //For late students
-        $forgot = $lec->attedances()->where('attend_status', 3)->count(); //For forgot book
-        $totalStudentsCount = Student::byStage($lec->stage_id)->count();
+        $lec = Lecture::find( $request->lecture_id);
+        
+        $totalStudentsCount = Student::byStage($lec->stage_id)->byStatus(true)-> count();
+        
+        $studentsDiabled = Student::byStage($lec->stage_id)->byStatus(false)-> pluck('id')->toArray();
+
+        $lectureAttendances = $lec->attedances()->byStudentStatus($studentsDiabled)->count();
+
+        $attends = $lec->attedances()->byAttendStatus(1)->byStudentStatus($studentsDiabled)-> count(); //For attended students
+        $late = $lec->attedances()->byAttendStatus(2)->byStudentStatus($studentsDiabled)-> count(); //For late students
+        $forgot = $lec->attedances()->byAttendStatus(3)->byStudentStatus($studentsDiabled)-> count(); //For forgot book
+        
         $abscence = $totalStudentsCount - $lectureAttendances;
+        
         return response()->json([
             'total_attendance_count' => $lectureAttendances,
             'attends_count' => $attends,
@@ -65,6 +72,7 @@ class LectureController extends Controller
             'forgot_book_count' => $forgot,
             'absence_count' => $abscence,
             'students_count' => $totalStudentsCount,
+            'disabled_count' => count($studentsDiabled),
         ]);
     }
     /**
