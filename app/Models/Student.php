@@ -60,10 +60,9 @@ class Student extends Model
     {
         if ($stage_id) {
             return $query->where('stage_id', $stage_id)->
-            orderBy('student_status','desc')->
             orderByRaw("CAST(code AS UNSIGNED)");
         }
-        return $query->orderBy('student_status','desc')->
+        return $query->
         orderByRaw("CAST(code AS UNSIGNED)");
     }
     public function scopeByStatus($query, $student_status)
