@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Payments\PaymentLookup;
+use App\Models\Payments\StudentPayment;
 use App\Models\Stages\Stage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +20,9 @@ class Student extends Model
     public function grades()
     {
         return $this->hasMany(Grade::class);
+    }
+    public function payments(){
+        return $this->hasMany(StudentPayment::class)->orderByDesc('payment_id');
     }
 
     protected $appends = ['qr_code_url'];
@@ -56,6 +61,15 @@ class Student extends Model
         });
         return $res;
     }
+
+    public function studentAllPayments()
+    {
+        $student_payments = StudentPayment::byStudentID($this->id)->select( 'student_id', 'payment_status', 'payment_id');
+        $res = PaymentLookup::where('stage_id', $this->stage_id)->leftJoinSub($student_payments, 'all_student_payments', function ($join) {
+            $join->on('payment_lookups.id', '=', 'all_student_payments.payment_id');
+        });
+        return $res;
+    }
     public function scopeByStage($query, $stage_id)
     {
         if ($stage_id) {
@@ -64,6 +78,12 @@ class Student extends Model
         }
         return $query->
         orderByRaw("CAST(code AS UNSIGNED)");
+    }
+    public function scopeByDisabled($query){
+        return $this->scopeByStatus($query,false);
+    }
+    public function scopeByEnabled($query){
+        return $this->scopeByStatus($query,true);
     }
     public function scopeByStatus($query, $student_status)
     {

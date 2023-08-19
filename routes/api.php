@@ -10,10 +10,17 @@ use App\Http\Controllers\{
     SearchController,HomeworkController
 };
 use App\Http\Controllers\PDF\PDFController;
+use App\Http\Controllers\Payments\{PaymentsController,StudentPaymentsController};
 use App\Http\Controllers\Stages\{StageController};
 
+// Route::prefix('payments')->group(function () {
+//     Route::post('/store', [PaymentsController::class, 'store']);
+//     Route::get('/stats', [PaymentsController::class, 'payment_stats']);
+//     Route::post('/store_student_payment', [StudentPaymentsController::class, 'store']);
+// });
 Route::middleware(AddResponseStatus::class)->group(function () {
     //Without token
+
     Route::post("register", [UserController::class, "register"]);
     Route::post("login", [UserController::class, "login"]);
 
@@ -37,6 +44,7 @@ Route::middleware(AddResponseStatus::class)->group(function () {
             Route::post('/list', [StudentController::class, 'studentExamsInStage']);
             Route::post('/attendance', [StudentController::class, 'studentAttendancesInStage']);
             Route::post('/homeworks', [StudentController::class, 'studentHomeworksInStage']);
+            Route::post('/payments', [StudentPaymentsController::class, 'index']);
             Route::post('/profile', [StudentController::class, 'show']);
             Route::post('/update', [StudentController::class, 'update']);
             Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
@@ -48,6 +56,12 @@ Route::middleware(AddResponseStatus::class)->group(function () {
             Route::post('/create', [ExamController::class, 'store']);
             Route::post('/update', [ExamController::class, 'update']);
             Route::post('/delete', [ExamController::class, 'destroy']);
+        });
+
+        Route::prefix('payments')->group(function () {
+            Route::post('/store', [PaymentsController::class, 'store']);
+            Route::get('/stats', [PaymentsController::class, 'payment_stats']);
+            Route::post('/store_student_payment', [StudentPaymentsController::class, 'store']);
         });
 
         Route::prefix('grades')->group(function () {

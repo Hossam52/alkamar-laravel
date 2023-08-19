@@ -12,6 +12,15 @@ class Attendance extends Model
     public function lecture(){
         return $this->belongsTo(Lecture::class,'lec_id');
     }
+    public function scopeByAttend($query){
+        return $this->scopeByAttendStatus($query,1);
+    }
+    public function scopeByLateAttend($query){
+        return $this->scopeByAttendStatus($query,2);
+    }
+    public function scopeByForgot($query){
+        return $this->scopeByAttendStatus($query,3);
+    }
     public function scopeByAttendStatus($query,$attendStatus){
         if(isset($attendStatus))
             return $query->where('attend_status',$attendStatus);

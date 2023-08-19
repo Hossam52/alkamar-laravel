@@ -53,15 +53,15 @@ class LectureController extends Controller
         ]);
         $lec = Lecture::find( $request->lecture_id);
         
-        $totalStudentsCount = Student::byStage($lec->stage_id)->byStatus(true)-> count();
+        $totalStudentsCount = Student::byStage($lec->stage_id)->byEnabled()-> count();
         
-        $studentsDiabled = Student::byStage($lec->stage_id)->byStatus(false)-> pluck('id')->toArray();
+        $studentsDiabled = Student::byStage($lec->stage_id)->byDisabled()-> pluck('id')->toArray();
 
         $lectureAttendances = $lec->attedances()->byStudentStatus($studentsDiabled)->count();
 
-        $attends = $lec->attedances()->byAttendStatus(1)->byStudentStatus($studentsDiabled)-> count(); //For attended students
-        $late = $lec->attedances()->byAttendStatus(2)->byStudentStatus($studentsDiabled)-> count(); //For late students
-        $forgot = $lec->attedances()->byAttendStatus(3)->byStudentStatus($studentsDiabled)-> count(); //For forgot book
+        $attends = $lec->attedances()->byAttend()->byStudentStatus($studentsDiabled)-> count(); //For attended students
+        $late = $lec->attedances()->byLateAttend()->byStudentStatus($studentsDiabled)-> count(); //For late students
+        $forgot = $lec->attedances()->byForgot()->byStudentStatus($studentsDiabled)-> count(); //For forgot book
         
         $abscence = $totalStudentsCount - $lectureAttendances;
         
