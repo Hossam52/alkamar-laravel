@@ -39,7 +39,7 @@ class PaymentsController extends Controller
         }
         $arr = $request->all();
         $arr['created_by'] = $request->user()->id;
-         $payment =  PaymentLookup::create($request->all());
+         $payment =  PaymentLookup::create($arr);
         return response()->json([
             'payment'=>$payment,
         ]);
