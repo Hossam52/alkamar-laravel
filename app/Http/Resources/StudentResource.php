@@ -21,10 +21,14 @@ class StudentResource extends JsonResource
         $student = $this->resource;
         $stage = $student->stage()->first();
         // $last_payment = $student->payments()->first();
-        $last_payment = PaymentLookup::byStage($stage->id)->orderByDesc('id')->first()->studentPayments()->byStudentID($student->id)->first();
+        $last_payment = PaymentLookup::byStage($stage->id)->orderByDesc('id')->first();
+
+        if ($last_payment !== null) {
+            $last_payment = $last_payment->studentPayments()->byStudentID($student->id)->first();
+        }
         $grades = $student->grades()->get();
         $data = parent::toArray($request);
-        $data['stage'] = $stage->title ;
+        $data['stage'] = $stage->title;
         $data['last_payment'] = new StudentPaymentResource($last_payment);
         // $data['stage'] = new StageResource($stage);
         // $data['grades'] =  GradeResource::collection($grades);
