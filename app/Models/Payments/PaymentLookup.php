@@ -23,6 +23,7 @@ class PaymentLookup extends Model
 
     protected $fillable = [
         'stage_id',
+        'created_by',
         'title',
         'status',
         'price',
