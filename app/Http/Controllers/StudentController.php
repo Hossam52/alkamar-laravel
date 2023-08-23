@@ -17,6 +17,7 @@ use App\Models\Homework;
 use App\Models\Lecture;
 use App\Models\Stages\Stage;
 use App\Models\Student;
+use App\Rules\ValidGroupForStage;
 use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -88,6 +89,8 @@ class StudentController extends Controller
             // }
             // $student['test']=$arr;
             // echo '\\n';
+            
+
             $attendances = AttendanceResource::collection($res);
             $student['attendances'] = $attendances;
             return $student;
@@ -168,6 +171,7 @@ class StudentController extends Controller
     {
         $request->validate([
             'stage_id' => 'required|integer',
+            'group_id'=>['nullable',new ValidGroupForStage($request->stage_id)],
             'code' => 'required|unique:students,code',
             'name' => 'required',
             'school' => 'string|nullable',
@@ -183,7 +187,6 @@ class StudentController extends Controller
 
         $studentData = $request->all();
         $studentData['created_by'] = $request->user()->id;
-
         $student = new Student($studentData);
         $student->save();
 
@@ -236,6 +239,8 @@ class StudentController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
+            'group_id'=>['nullable','exists:groups,id'],
+
             'code' => 'unique:students,code,' . $request->student_id,
             'name' => 'string',
             'school' => 'string|nullable|',
@@ -249,7 +254,7 @@ class StudentController extends Controller
         ]);
         $student = Student::find($request->student_id);
         // Update the student's attributes only if they are present in the request
-        $fillableAttributes = ['code', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address','problems','student_status'];
+        $fillableAttributes = ['code','group_id', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address','problems','student_status'];
 
         foreach ($fillableAttributes as $attribute) {
             if ($request->has($attribute)) {

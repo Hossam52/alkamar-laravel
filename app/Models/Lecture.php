@@ -2,21 +2,43 @@
 
 namespace App\Models;
 
+use App\Models\Group\Group;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Lecture extends Model
 {
     use HasFactory;
-    
-    public function attedances(){
-        return $this->hasMany(Attendance::class,'lec_id');
+    public $timestamps = true;
+
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class, 'lec_id');
     }
-    
-    protected $hidden =[
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'groups_lectures', 'lec_id', 'group_id');
+    }
+
+    public function lectureGroups()
+    {
+        $this->groups()->orderBy('group_id')->get()->toArray();
+    }
+    public function storeGroup(array $groups){
+        $attachData = $groups;
+
+        $this->groups()->syncWithoutDetaching($attachData);
+    }
+    public function scopeByStageId($query,$stage_id){
+        if(isset($stage_id)){
+            return $query->where('stage_id',$stage_id);
+        }
+        return $query;
+    }
+    protected $hidden = [
         'created_by',
-        'created_at',
-        'updated_at',
+
     ];
     protected $fillable = [
         'created_by',
@@ -24,9 +46,9 @@ class Lecture extends Model
         'title',
         'lecture_date',
     ];
-    protected $casts =[
-        'created_by'=>'integer',
-        'stage_id'=>'integer',
-        'lecture_date'=>'date',
+    protected $casts = [
+        'created_by' => 'integer',
+        'stage_id' => 'integer',
+        'lecture_date' => 'date',
     ];
 }

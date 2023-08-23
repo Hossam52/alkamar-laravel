@@ -20,6 +20,7 @@ class StudentResource extends JsonResource
     {
         $student = $this->resource;
         $stage = $student->stage()->first();
+        $group = $student->group()->first();
         // $last_payment = $student->payments()->first();
         $last_payment = PaymentLookup::byStage($stage->id)->orderByDesc('id')->first();
 
@@ -30,8 +31,12 @@ class StudentResource extends JsonResource
         $data = parent::toArray($request);
         $data['stage'] = $stage->title;
         $data['last_payment'] = new StudentPaymentResource($last_payment);
-        // $data['stage'] = new StageResource($stage);
-        // $data['grades'] =  GradeResource::collection($grades);
+        if($group){
+            $data['group_title'] = $group->title;
+            $data['group_id'] = $group->id;
+
+        }
+
         return $data;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Group\Group;
 use App\Models\Payments\PaymentLookup;
 use App\Models\Payments\StudentPayment;
 use App\Models\Stages\Stage;
@@ -17,9 +18,15 @@ class Student extends Model
     {
         return $this->belongsTo(Stage::class);
     }
+    public function group(){
+        return $this->belongsTo(Group::class);
+    }
     public function grades()
     {
         return $this->hasMany(Grade::class);
+    }
+    public function attendances(){
+        return $this->hasMany(Attendance::class);
     }
     public function payments(){
         return $this->hasMany(StudentPayment::class)->orderByDesc('payment_id');
@@ -47,11 +54,24 @@ class Student extends Model
     }
     public function studentAllAttendancesGrades()
     {
-        $attendanceRes = Attendance::where('student_id', $this->id)->select('id as attendance_id', 'student_id', 'attend_status', 'lec_id');
+        $attendanceRes = Attendance::where('student_id', $this->id)->select('id as attendance_id', 'student_id','attend_group_id', 'attend_status', 'lec_id');
         $res = Lecture::where('stage_id', $this->stage_id)->leftJoinSub($attendanceRes, 'attendanceRes', function ($join) {
             $join->on('lectures.id', '=', 'attendanceRes.lec_id');
         });
         return $res;
+
+//         $lectureRes = Lecture::where('stage_id', $this->stage_id)
+//     ->select('id as lecture_id', 'stage_id', 'title', 'lecture_date');
+
+// $res = Attendance::where('student_id', $this->id)
+//     ->leftJoinSub($lectureRes, 'lectureRes', function ($join) {
+//         $join->on('attendances.lec_id', '=', 'lectureRes.lecture_id');
+//     })
+//     ->select('attendances.id','attendances.attend_group_id', 'attendances.student_id', 'attendances.attend_status', 'attendances.lec_id', 'lectureRes.lecture_id', 'lectureRes.stage_id', 'lectureRes.title', 'lectureRes.lecture_date');
+
+// return $res;
+
+
     }
     public function studentAllHomeworks()
     {
@@ -78,6 +98,12 @@ class Student extends Model
         }
         return $query->
         orderByRaw("CAST(code AS UNSIGNED)");
+    }
+    public function scopeByGroup($query,$group_id){
+        if (isset($group_id)) {
+            return $query->where('group_id',$group_id);
+        }
+        return $query;
     }
     public function scopeByDisabled($query){
         return $this->scopeByStatus($query,false);
@@ -155,6 +181,7 @@ class Student extends Model
     ];
     protected $fillable = [
         'stage_id',
+        'group_id',
         'created_by',
         'code',
         'name',

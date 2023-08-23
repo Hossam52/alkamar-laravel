@@ -12,6 +12,7 @@ use App\Http\Controllers\{
 use App\Http\Controllers\PDF\PDFController;
 use App\Http\Controllers\Payments\{PaymentsController,StudentPaymentsController};
 use App\Http\Controllers\Stages\{StageController};
+use App\Http\Controllers\Group\{GroupsController};
 
 // Route::prefix('payments')->group(function () {
 //     Route::post('/store', [PaymentsController::class, 'store']);
@@ -84,6 +85,11 @@ Route::middleware(AddResponseStatus::class)->group(function () {
 
         Route::prefix('search')->group(function () {
             Route::post('/',[SearchController::class, 'searchStudent']);
+        });
+
+        Route::prefix('groups')->group(function () {
+            Route::get('/',[GroupsController::class, 'index']);
+            Route::post('/store',[GroupsController::class, 'store']);
         });
 
 

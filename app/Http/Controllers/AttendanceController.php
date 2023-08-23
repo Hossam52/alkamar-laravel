@@ -33,6 +33,7 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
+            'attend_group_id' => 'required|exists:groups,id',
             'lec_id' => 'required|exists:lectures,id',
             'attend_status' => 'integer|nullable'
         ]);

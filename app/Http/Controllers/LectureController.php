@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\LectureResource;
 use App\Models\Attendance;
+use App\Models\Group\Group;
 use App\Models\Lecture;
 use App\Models\Student;
 use Illuminate\Http\Request;
@@ -36,36 +37,28 @@ class LectureController extends Controller
             'title' => 'required',
             'lecture_date' => 'required|date'
         ]);
+        $groups = Group::byStageId($request->stage_id)->pluck('id')->toArray();
+
         $arr = $request->all();
         $arr['created_by'] = $request->user()->id;
         $lec = new Lecture($arr);
         $lec->save();
+
+        $arr = [];
+        foreach ($groups as $group) {
+            $arr[$group] = [];
+        }
+        $lec->storeGroup($arr);
 
         return response()->json([
             'message' => 'تم اضافة محاضرة جديدة بنجاح',
             'lecture' => new LectureResource($lec),
         ], 201);
     }
-    public function lectureStats(Request $request)
+    public function lecStstsArray($group_title, $lectureAttendances, $attends, $late, $forgot, $abscence, $totalStudentsCount, $studentsDiabled)
     {
-        $request->validate([
-            'lecture_id' => 'required|exists:lectures,id',
-        ]);
-        $lec = Lecture::find( $request->lecture_id);
-        
-        $totalStudentsCount = Student::byStage($lec->stage_id)->byEnabled()-> count();
-        
-        $studentsDiabled = Student::byStage($lec->stage_id)->byDisabled()-> pluck('id')->toArray();
-
-        $lectureAttendances = $lec->attedances()->byStudentStatus($studentsDiabled)->count();
-
-        $attends = $lec->attedances()->byAttend()->byStudentStatus($studentsDiabled)-> count(); //For attended students
-        $late = $lec->attedances()->byLateAttend()->byStudentStatus($studentsDiabled)-> count(); //For late students
-        $forgot = $lec->attedances()->byForgot()->byStudentStatus($studentsDiabled)-> count(); //For forgot book
-        
-        $abscence = $totalStudentsCount - $lectureAttendances;
-        
-        return response()->json([
+        return [
+            'group_title' => $group_title,
             'total_attendance_count' => $lectureAttendances,
             'attends_count' => $attends,
             'late_count' => $late,
@@ -73,7 +66,68 @@ class LectureController extends Controller
             'absence_count' => $abscence,
             'students_count' => $totalStudentsCount,
             'disabled_count' => count($studentsDiabled),
+        ];
+    }
+    public function lectureStats(Request $request)
+    {
+        $request->validate([
+            'lecture_id' => 'required|exists:lectures,id',
+            'group_id' => 'array',
+            'group_id.*' => 'exists:groups,id',
         ]);
+        $arr = [];
+        $lec = Lecture::find($request->lecture_id);
+        if ($request->has('group_id') && count($request->group_id) != 0) {
+
+            foreach ($request->group_id as $id) {
+                $group = Group::find($id);
+                $students = $group->students();
+                $studentsDiabled = $students->byDisabled()->pluck('id');
+
+                $totalStudentsCount = $group->students()->byEnabled()->count();
+                $lectureAttendances = $group->attendances()->byLectureId($lec->id)->byStudentStatus($studentsDiabled)->count();
+
+                $attends = $group->attendances()->byLectureId($lec->id)->byAttend()->byStudentStatus($studentsDiabled)->count(); //For attended students
+                $late = $group->attendances()->byLectureId($lec->id)->byLateAttend()->byStudentStatus($studentsDiabled)->count(); //For late students
+                $forgot = $group->attendances()->byLectureId($lec->id)->byForgot()->byStudentStatus($studentsDiabled)->count(); //For forgot book
+
+                $abscence = max($totalStudentsCount - $lectureAttendances, 0);
+                // $attendOutsideGroup = Student::whereHas('attendances', function ($query) use ($lec, $group) {
+                //     $query->where('lec_id', $lec->id);
+                //     //     ->where('attend_group_id', '<>', 'students.group_id');
+                // })
+                //     ->byStage($group->stage_id)
+                //     ->byEnabled()
+                //     ->byGroup($group->id)
+                //     ->pluck('code');
+
+                // dd($attendOutsideGroup);
+
+                $arr[] = $this->lecStstsArray($group->title, $lectureAttendances, $attends, $late, $forgot, $abscence, $totalStudentsCount, $studentsDiabled);
+
+            }
+        } else {
+            $students = Student::byStage($lec->stage_id);
+            $studentsDiabled = $students->byDisabled()->pluck('id');
+
+            $totalStudentsCount = Student::byStage($lec->stage_id)->byEnabled()->count();
+
+            $lectureAttendances = $lec->attendances()->byStudentStatus($studentsDiabled)->count();
+
+            $attends = $lec->attendances()->byLectureId($lec->id)->byAttend()->byStudentStatus($studentsDiabled)->count(); //For attended students
+            $late = $lec->attendances()->byLectureId($lec->id)->byLateAttend()->byStudentStatus($studentsDiabled)->count(); //For late students
+            $forgot = $lec->attendances()->byLectureId($lec->id)->byForgot()->byStudentStatus($studentsDiabled)->count(); //For forgot book
+
+            $abscence = $totalStudentsCount - $lectureAttendances;
+            $arr[] = $this->lecStstsArray(null, $lectureAttendances, $attends, $late, $forgot, $abscence, $totalStudentsCount, $studentsDiabled);
+        }
+        $abscence = $totalStudentsCount - $lectureAttendances;
+
+        return response()->json(
+            [
+                'stats' => $arr
+            ]
+        );
     }
     /**
      * Display the specified resource.
@@ -103,11 +157,13 @@ class LectureController extends Controller
         ]);
 
         $lecture = Lecture::find($request->lecture_id);
-        if(isset($request->title)) $lecture->title = $request->title;
-        if(isset($request->lecture_date)) $lecture->lecture_date = $request->lecture_date;
+        if (isset($request->title))
+            $lecture->title = $request->title;
+        if (isset($request->lecture_date))
+            $lecture->lecture_date = $request->lecture_date;
         $lecture->save();
 
-        return response()->json(['lecture'=>new LectureResource($lecture)]);
+        return response()->json(['lecture' => new LectureResource($lecture)]);
     }
 
     /**
@@ -115,9 +171,9 @@ class LectureController extends Controller
      */
     public function destroy(Request $request)
     {
-        $request->validate(['lecture_id'=>'required|exists:lectures,id']);
+        $request->validate(['lecture_id' => 'required|exists:lectures,id']);
         $lecture = Lecture::find($request->lecture_id);
         $lecture->delete();
-        return response()->json(['message'=>'تم حذف المحاضرة بنجاح']);
+        return response()->json(['message' => 'تم حذف المحاضرة بنجاح']);
     }
 }

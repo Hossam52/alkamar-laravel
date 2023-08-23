@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Group\Group;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,6 +12,12 @@ class Attendance extends Model
     use HasFactory;
     public function lecture(){
         return $this->belongsTo(Lecture::class,'lec_id');
+    }
+    public function student(){
+        return $this->belongsTo(Student::class);
+    }
+    public function group(){
+        return $this->belongsTo(Group::class,'attend_group_id','id');
     }
     public function scopeByAttend($query){
         return $this->scopeByAttendStatus($query,1);
@@ -42,11 +49,15 @@ class Attendance extends Model
     public function scopeByStudentsScanned($query,$lec_id, $assistant_id){
         return $query->byLectureId($lec_id)->where('assistant_id',$assistant_id);
     }
+
+   
     protected $fillable = [
+        'id',
         'student_id',
         'assistant_id',
         'lec_id',
         'attend_status',
+        'attend_group_id',
     ];
     
     protected $casts = [

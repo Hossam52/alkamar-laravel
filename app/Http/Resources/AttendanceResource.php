@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,7 +16,8 @@ class AttendanceResource extends JsonResource
     public function toArray(Request $request): array
     {
         $attendance = $this->resource;
-
+        $attendance = Attendance::make($attendance->toArray());
+        $group = $attendance->group()->first();
         $data = parent::toArray($request);
 
         if (isset($attendance->lecture)) {
@@ -30,8 +32,9 @@ class AttendanceResource extends JsonResource
                     'student_id' => $attendance->student_id,
                     'attend_status' => $attendance->attend_status,
                     'lec_id' => $attendance->lec_id,
-                ]
-            );
+                    'group'=> new GroupResource($group)
+                    ]
+                );
 
         }
         return $data;
