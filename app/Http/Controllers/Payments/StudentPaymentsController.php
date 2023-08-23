@@ -65,8 +65,12 @@ class StudentPaymentsController extends Controller
             $payment->save();
             // return response()->json(['message'=>'هذا الطالب قد دفع مسبقا يوم '. Carbon::parse($payment->created_at)->format('Y-m-d')],400);
         }
-        else
-        $payment = StudentPayment::create($request->all());
+        else{
+            $arr = $request->all();
+            $arr['created_by'] = $request->user()->id;
+            $payment = StudentPayment::create($arr);
+            
+        }
         return response()->json(['payment'=>new StudentPaymentResource($payment)]);
     }
 
