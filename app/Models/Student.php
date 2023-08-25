@@ -25,6 +25,9 @@ class Student extends Model
     {
         return $this->hasMany(Grade::class);
     }
+    public function homeworks(){
+        return $this->hasMany(Homework::class);
+    }
     public function attendances(){
         return $this->hasMany(Attendance::class);
     }
@@ -46,51 +49,12 @@ class Student extends Model
     }
     public function studentAllExamGrades()
     {
-        $gradeRes = Grade::where('student_id', $this->id)->select('id as grade_id', 'student_id', 'grade', 'exam_id');
+        $gradeRes = $this->grades()->select('id as grade_id', 'student_id', 'grade', 'exam_id');
         $res = Exam::where('stage_id', $this->stage_id)->leftJoinSub($gradeRes, 'gradeRes', function ($join) {
             $join->on('exams.id', '=', 'gradeRes.exam_id');
         });
         return $res;
-    }
-    public function studentAllAttendancesGrades()
-    {
-        $attendanceRes = Attendance::where('student_id', $this->id)->select('id as attendance_id', 'student_id','attend_group_id', 'attend_status', 'lec_id');
-        $res = Lecture::where('stage_id', $this->stage_id)->leftJoinSub($attendanceRes, 'attendanceRes', function ($join) {
-            $join->on('lectures.id', '=', 'attendanceRes.lec_id');
-        });
-        return $res;
-
-//         $lectureRes = Lecture::where('stage_id', $this->stage_id)
-//     ->select('id as lecture_id', 'stage_id', 'title', 'lecture_date');
-
-// $res = Attendance::where('student_id', $this->id)
-//     ->leftJoinSub($lectureRes, 'lectureRes', function ($join) {
-//         $join->on('attendances.lec_id', '=', 'lectureRes.lecture_id');
-//     })
-//     ->select('attendances.id','attendances.attend_group_id', 'attendances.student_id', 'attendances.attend_status', 'attendances.lec_id', 'lectureRes.lecture_id', 'lectureRes.stage_id', 'lectureRes.title', 'lectureRes.lecture_date');
-
-// return $res;
-
-
-    }
-    public function studentAllHomeworks()
-    {
-        $homeworkRes = Homework::where('student_id', $this->id)->select('id as homework_id', 'student_id', 'homework_status', 'lec_id');
-        $res = Lecture::where('stage_id', $this->stage_id)->leftJoinSub($homeworkRes, 'homeworkRes', function ($join) {
-            $join->on('lectures.id', '=', 'homeworkRes.lec_id');
-        });
-        return $res;
-    }
-
-    public function studentAllPayments()
-    {
-        $student_payments = StudentPayment::byStudentID($this->id)->select( 'student_id', 'payment_status', 'payment_id');
-        $res = PaymentLookup::where('stage_id', $this->stage_id)->leftJoinSub($student_payments, 'all_student_payments', function ($join) {
-            $join->on('payment_lookups.id', '=', 'all_student_payments.payment_id');
-        });
-        return $res;
-    }
-    public function scopeByStage($query, $stage_id)
+    }    public function scopeByStage($query, $stage_id)
     {
         if ($stage_id) {
             return $query->where('stage_id', $stage_id)->

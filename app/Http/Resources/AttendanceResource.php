@@ -18,8 +18,8 @@ class AttendanceResource extends JsonResource
         $attendance = $this->resource;
         $attendance = Attendance::make($attendance->toArray());
         $group = $attendance->group()->first();
-        $data = parent::toArray($request);
-
+        
+        $lecture = $attendance->lecture()->first();
         if (isset($attendance->lecture)) {
             $lecture = $attendance->lecture()->first();
             return (
@@ -32,11 +32,11 @@ class AttendanceResource extends JsonResource
                     'student_id' => $attendance->student_id,
                     'attend_status' => $attendance->attend_status,
                     'lec_id' => $attendance->lec_id,
-                    'group'=> new GroupResource($group)
-                    ]
-                );
+                    'group' => new GroupResource($group)
+                ]
+            );
 
         }
-        return $data;
+        return parent::toArray($request);
     }
 }

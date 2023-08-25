@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Payments;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AllStudentWithGradesResource;
 use App\Http\Resources\Payments\PaymentLookupResource;
 use App\Http\Resources\Payments\StudentPaymentResource;
 use App\Models\Payments\PaymentLookup;
@@ -30,7 +31,7 @@ class StudentPaymentsController extends Controller
         $students = Student::byStage($stage_id)->get();
         $allStudents = $students->map(function ($student) {
 
-            $res = $student->studentAllPayments()->get();
+            $res = $student->payments()->get();
             $payments = StudentPaymentResource::collection($res);
 
             $student['payments'] = $payments;
@@ -40,7 +41,7 @@ class StudentPaymentsController extends Controller
           $payments = PaymentLookup::byStage($stage_id)->get();
 
         return response()->json([
-            'students' => $allStudents,
+            'students' => AllStudentWithGradesResource::collection($allStudents),
             'payments' => PaymentLookupResource::collection($payments),
         ], );
     }

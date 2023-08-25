@@ -67,39 +67,20 @@ class StudentController extends Controller
         $request->validate([
             'stage_id' => 'required|exists:stages,id'
         ]);
-
-
+        
+        
         $stage_id = $request->stage_id;
+        
+        $lectures = Lecture::byStageId($stage_id)->get();
 
         $students = Student::byStage($stage_id)->get();
+        
         $allStudents = $students->map(function ($student) {
-
-            $res = $student->studentAllAttendancesGrades()->get();
-
-            // foreach($res as $at){
-            //     echo $at['attendance_id'].'';
-            //     $att =new Attendance([
-            //         'id'=>$at['attendance_id'],
-            //         'student_id'=>$at['student_id'],
-            //         'is_late'=>$at['is_late'],
-            //         'lec_id'=>$at['lec_id'],
-            //     ]);
-            //     $arr[] = new AttendanceResource($att);
-
-            // }
-            // $student['test']=$arr;
-            // echo '\\n';
-            
-
+            $res = $student->attendances()->get();
             $attendances = AttendanceResource::collection($res);
             $student['attendances'] = $attendances;
             return $student;
         });
-
-        $males = Student::byStage($stage_id)->byMale()->get();
-        $females = Student::byStage($stage_id)->byFemale()->get();
-
-        $lectures = Lecture::where('stage_id', $stage_id)->get();
 
         return response()->json([
             'students' => AllStudentWithGradesResource::collection($allStudents),
@@ -119,7 +100,7 @@ class StudentController extends Controller
         $students = Student::byStage($stage_id)->get();
         $allStudents = $students->map(function ($student) {
 
-            $res = $student->studentAllHomeworks()->get();
+            $res = $student->homeworks()->get();
             $homeworks = HomeworkResource::collection($res);
 
             $student['homeworks'] = $homeworks;
