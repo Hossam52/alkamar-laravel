@@ -73,8 +73,8 @@ class StudentController extends Controller
         
         $lectures = Lecture::byStageId($stage_id)->get();
 
-        $students = Student::byStage($stage_id)->get();
-        
+        $totalStudents = Student::byStage($stage_id)->count();
+        $students = Student::byStage($stage_id)->get();//simplePaginate(100);
         $allStudents = $students->map(function ($student) {
             $res = $student->attendances()->get();
             $attendances = AttendanceResource::collection($res);
@@ -83,6 +83,7 @@ class StudentController extends Controller
         });
 
         return response()->json([
+            'total_students' => $totalStudents,
             'students' => AllStudentWithGradesResource::collection($allStudents),
             'lectures' => LectureResource::collection($lectures),
         ], );

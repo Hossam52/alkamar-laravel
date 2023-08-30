@@ -47,6 +47,11 @@ class GradeController extends Controller
         //     return response()->json(['message'=>'تم تسجيل هذا الطالب من قبل لهذا الامتحان'],400);
         // }
         $exam = Exam::where('id',$request->exam_id)->first();
+        if($exam->stage_id != $std->stage_id){
+            return response()->json([
+                'message'=>'هذا الطالب غير مسجل في هذه المرحلة'
+            ],400);
+        }
         if($exam->max_grade < $request->grade)
             return response()->json(['message'=>'يجب ان تكون الدرجة اقل من الدرجة العظمي('.$exam->max_grade.'درجة)'],400);
         
