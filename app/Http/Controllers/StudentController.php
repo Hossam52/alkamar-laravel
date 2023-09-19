@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\AllStudentsList\AttendanceStudentListResource;
+use App\Http\Resources\AllStudentsList\GradesStudentListResource;
+use App\Http\Resources\AllStudentsList\HomeworkStudentListResource;
 use App\Http\Resources\AllStudentWithGradesResource;
 use App\Http\Resources\AttendanceResource;
 use App\Http\Resources\ExamResource;
@@ -38,27 +41,13 @@ class StudentController extends Controller
         $request->validate([
             'stage_id' => 'required|exists:stages,id'
         ]);
-
-
         $stage_id = $request->stage_id;
-
-        $students = Student::byStage($stage_id)->get();
-        $allStudents = $students->map(function ($student) {
-
-            $res = $student->studentAllExamGrades()->get();
-            $grades = ExamResource::collection($res);
-
-            $student['grades'] = $grades;
-            return $student;
-        });
-
-        $males = Student::byStage($stage_id)->byMale()->get();
-        $females = Student::byStage($stage_id)->byFemale()->get();
-
+        
+        $allStudents = Student::byStage($stage_id)->with('grades')->simplePaginate(100);
         $exams = Exam::where('stage_id', $stage_id)->get();
 
         return response()->json([
-            'students' => AllStudentWithGradesResource::collection($allStudents),
+            'students' => GradesStudentListResource::collection($allStudents),
             'exams' => ExamResource::collection($exams),
         ], );
     }
@@ -67,51 +56,31 @@ class StudentController extends Controller
         $request->validate([
             'stage_id' => 'required|exists:stages,id'
         ]);
-        
-        
         $stage_id = $request->stage_id;
-        
+
+        $allStudents = Student::byStage($stage_id)->with('attendances')->simplePaginate(100);
         $lectures = Lecture::byStageId($stage_id)->get();
 
-        $totalStudents = Student::byStage($stage_id)->count();
-        $students = Student::byStage($stage_id)->get();//simplePaginate(100);
-        $allStudents = $students->map(function ($student) {
-            $res = $student->attendances()->get();
-            $attendances = AttendanceResource::collection($res);
-            $student['attendances'] = $attendances;
-            return $student;
-        });
-
-        return response()->json([
-            'total_students' => $totalStudents,
-            'students' => AllStudentWithGradesResource::collection($allStudents),
-            'lectures' => LectureResource::collection($lectures),
-        ], );
+        return response()->json(
+            [
+                'students' => AttendanceStudentListResource::collection($allStudents),
+                'lectures' => LectureResource::collection($lectures),
+            ],
+        );
     }
-    
+
     public function studentHomeworksInStage(Request $request)
     {
         $request->validate([
             'stage_id' => 'required|exists:stages,id'
         ]);
-
-
         $stage_id = $request->stage_id;
 
-        $students = Student::byStage($stage_id)->get();
-        $allStudents = $students->map(function ($student) {
-
-            $res = $student->homeworks()->get();
-            $homeworks = HomeworkResource::collection($res);
-
-            $student['homeworks'] = $homeworks;
-            return $student;
-        });
-
-          $lectures = Lecture::where('stage_id', $stage_id)->get();
+        $allStudents = Student::byStage($stage_id)->with('homeworks')->simplePaginate(100);
+        $lectures = Lecture::byStageId($stage_id)->get();
 
         return response()->json([
-            'students' => AllStudentWithGradesResource::collection($allStudents),
+            'students' => HomeworkStudentListResource::collection($allStudents),
             'lectures' => LectureResource::collection($lectures),
         ], );
     }
@@ -153,7 +122,7 @@ class StudentController extends Controller
     {
         $request->validate([
             'stage_id' => 'required|integer',
-            'group_id'=>['nullable',new ValidGroupForStage($request->stage_id)],
+            'group_id' => ['nullable', new ValidGroupForStage($request->stage_id)],
             'code' => 'required|unique:students,code',
             'name' => 'required',
             'school' => 'string|nullable',
@@ -221,7 +190,7 @@ class StudentController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-            'group_id'=>['nullable','exists:groups,id'],
+            'group_id' => ['nullable', 'exists:groups,id'],
 
             'code' => 'unique:students,code,' . $request->student_id,
             'name' => 'string',
@@ -231,12 +200,12 @@ class StudentController extends Controller
             'student_phone' => 'string|nullable',
             'whatsapp' => 'string|nullable',
             'address' => 'string|nullable',
-            'prblems'=>'string|nullable',
-            'student_status'=>'boolean|nullable'
+            'prblems' => 'string|nullable',
+            'student_status' => 'boolean|nullable'
         ]);
         $student = Student::find($request->student_id);
         // Update the student's attributes only if they are present in the request
-        $fillableAttributes = ['code','group_id', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address','problems','student_status'];
+        $fillableAttributes = ['code', 'group_id', 'name', 'school', 'father_phone', 'mother_phone', 'student_phone', 'whatsapp', 'address', 'problems', 'student_status'];
 
         foreach ($fillableAttributes as $attribute) {
             if ($request->has($attribute)) {

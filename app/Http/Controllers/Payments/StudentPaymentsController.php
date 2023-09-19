@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Payments;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AllStudentsList\PaymentStudentListResource;
 use App\Http\Resources\AllStudentWithGradesResource;
 use App\Http\Resources\Payments\PaymentLookupResource;
 use App\Http\Resources\Payments\StudentPaymentResource;
@@ -20,28 +21,16 @@ class StudentPaymentsController extends Controller
      */
     public function index(Request $request)
     {
-        
         $request->validate([
             'stage_id' => 'required|exists:stages,id'
         ]);
-
-
         $stage_id = $request->stage_id;
 
-        $students = Student::byStage($stage_id)->get();
-        $allStudents = $students->map(function ($student) {
-
-            $res = $student->payments()->get();
-            $payments = StudentPaymentResource::collection($res);
-
-            $student['payments'] = $payments;
-            return $student;
-        });
-
-          $payments = PaymentLookup::byStage($stage_id)->get();
+        $allStudents = Student::byStage($stage_id)->with('payments')->simplePaginate('100');
+        $payments = PaymentLookup::byStage($stage_id)->get();
 
         return response()->json([
-            'students' => AllStudentWithGradesResource::collection($allStudents),
+            'students' => PaymentStudentListResource::collection($allStudents),
             'payments' => PaymentLookupResource::collection($payments),
         ], );
     }

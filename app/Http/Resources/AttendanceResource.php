@@ -17,11 +17,10 @@ class AttendanceResource extends JsonResource
     {
         $attendance = $this->resource;
         $attendance = Attendance::make($attendance->toArray());
-        $group = $attendance->group()->first();
+        $group = $attendance->group;
         
-        $lecture = $attendance->lecture()->first();
+        $lecture = $attendance->lecture;
         if (isset($attendance->lecture)) {
-            $lecture = $attendance->lecture()->first();
             return (
                 [
                     'id' => $attendance->id,

@@ -16,6 +16,14 @@ class AllStudentWithGradesResource extends JsonResource
     public function toArray(Request $request): array
     {
         $data = parent::toArray($request);
+        $attendances = $this->resource->attendances;
+        $homeworks = $this->resource->homeworks;
+        if($attendances){
+            $data ['attendances'] = AttendanceResource::collection($attendances);
+        }
+        // if($homeworks){
+        //     $data ['homeworks'] = HomeworkResource::collection($homeworks);
+        // }
         return $data;
         // $attributes = [
         //     'id' => $data['id'],

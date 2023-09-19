@@ -13,15 +13,30 @@ use App\Http\Controllers\PDF\PDFController;
 use App\Http\Controllers\Payments\{PaymentsController,StudentPaymentsController};
 use App\Http\Controllers\Stages\{StageController};
 use App\Http\Controllers\Group\{GroupsController};
+use App\Http\Middleware\PaginateStudentList;
 
 // Route::prefix('payments')->group(function () {
 //     Route::post('/store', [PaymentsController::class, 'store']);
 //     Route::get('/stats', [PaymentsController::class, 'payment_stats']);
 //     Route::post('/store_student_payment', [StudentPaymentsController::class, 'store']);
 // });
-Route::middleware(AddResponseStatus::class)->group(function () {
     //Without token
 
+    // Route::prefix('students')->group(function () {
+    //     Route::get('/', [StudentController::class, 'studentProfile']);
+    //     Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
+        
+    //     Route::post('/create', [StudentController::class, 'store']);
+    //     Route::post('/profile', [StudentController::class, 'show']);
+    //     Route::post('/update', [StudentController::class, 'update']);
+        
+    //     Route:: post('/homeworks', [StudentController::class, 'studentHomeworksInStage']);
+    //     Route::middleware(['responseStatus:with_total_students'])->post('/attendance', [StudentController::class, 'studentAttendancesInStage']);
+    //     Route::post('/list', [StudentController::class, 'studentExamsInStage']);
+    //     Route::post('/payments', [StudentPaymentsController::class, 'index']);
+
+    // });
+Route::middleware('responseStatus')->group(function(){
     Route::post("register", [UserController::class, "register"]);
     Route::post("login", [UserController::class, "login"]);
 
@@ -41,14 +56,19 @@ Route::middleware(AddResponseStatus::class)->group(function () {
         
         Route::prefix('students')->group(function () {
             Route::get('/', [StudentController::class, 'studentProfile']);
+            Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
+            
             Route::post('/create', [StudentController::class, 'store']);
-            Route::post('/list', [StudentController::class, 'studentExamsInStage']);
-            Route::post('/attendance', [StudentController::class, 'studentAttendancesInStage']);
-            Route::post('/homeworks', [StudentController::class, 'studentHomeworksInStage']);
-            Route::post('/payments', [StudentPaymentsController::class, 'index']);
             Route::post('/profile', [StudentController::class, 'show']);
             Route::post('/update', [StudentController::class, 'update']);
-            Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
+            
+            Route::withoutMiddleware('responseStatus')->middleware(["responseStatus:with_total_students"])->group( function () {
+                Route:: post('/homeworks', [StudentController::class, 'studentHomeworksInStage']);
+                Route::post('/attendance', [StudentController::class, 'studentAttendancesInStage']);
+                Route::post('/list', [StudentController::class, 'studentExamsInStage']);
+                Route::post('/payments', [StudentPaymentsController::class, 'index']);
+
+            });
         });
         Route::prefix('exams')->group(function () {
             Route::get('/', [ExamController::class, 'allExams']);
