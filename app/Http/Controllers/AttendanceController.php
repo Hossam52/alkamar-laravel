@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\AttendanceResource;
 use App\Models\Attendance;
+use App\Models\Homework;
 use App\Models\Lecture;
 use App\Models\Student;
 use Illuminate\Http\Request;
@@ -37,10 +38,13 @@ class AttendanceController extends Controller
             'lec_id' => 'required|exists:lectures,id',
             'attend_status' => 'integer|nullable'
         ]);
+        
         $attendance = Attendance::byLectureId($request->lec_id) ->where('student_id',$request->student_id)->first();
-
+        $homework = Homework::byLectureId($request->lec_id)->where('student_id',$request->student_id)->first();
+       
         if($attendance){
             if(!$request->has('attend_status')){
+                if($homework)$homework->delete();
                 $attendance->delete();
                 return response()->json(['message'=>'تم الغاء حضور الطالب بنجاح']);
             }
@@ -49,6 +53,8 @@ class AttendanceController extends Controller
         
         $lec = Lecture::where('id',$request->lec_id)->first();
         $std = Student::where('id',$request->student_id)->first();
+       
+      
         if($std->isDisabled()){
             return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
         }
@@ -64,6 +70,16 @@ class AttendanceController extends Controller
         $arr['assistant_id'] = $request->user()->id;
         $attendance_record = new Attendance($arr);
         $attendance_record->save();
+        
+       //Make  default when attend student is to make homework to be done
+        $homework = new Homework([
+            'student_id'=>$std->id,
+            'assistant_id'=>$request->user()->id,
+            'lec_id'=>$lec->id,
+            'homework_status'=>1,
+        ]);
+        $homework->save();
+       
 
         $studentIdsByAssistant = Attendance::byStudentsScanned($request->lec_id,$request->user()->id)->get(['student_id']);
         $maleStds = Student::byMaleCount($studentIdsByAssistant)->count();

@@ -40,7 +40,7 @@ class ExamController extends Controller
             $division = 4;
         if ($division == 0)
             $division = 1;
-        $grades = $exam->grades()->get()->sortByDesc('grade');
+        $grades = $exam->grades()->with('student')->get()->sortByDesc('grade');
         $arr = [];
         $percentile = (int) ($maxGrade / $division);
         for ($i = 0; $i < $division; $i++) {
@@ -56,11 +56,23 @@ class ExamController extends Controller
             ];
         }
         $total = 0;
+        $students = Student::byStage($exam->stage_id)
+        ->whereHas('grades', function ($query) use ($exam) {
+            $query->where('exam_id', $exam->id);
+        })
+        ->select('students.*', \DB::raw('(SELECT CAST(MAX(grade) AS double) FROM grades WHERE student_id = students.id AND exam_id = '.$exam->id.') as max_grade'))
+      ->orderBy('code', 'asc')
+        ->get()->sortByDesc('max_grade')  ;
+        $arr2 = [];
+        foreach ($students as $student) {
+            if (count($student->grades) == 0)
+                continue;
 
-        foreach ($grades as $grade) {
+            $grade = $student->grades[0];
             $percent = $grade->grade; // percent($exam->max_grade);
-            $student = $grade->student()->first();
-            if($student->isDisabled()) continue;
+           
+            if ($student->isDisabled())
+                continue;
             foreach ($arr as &$percentileRange) {
                 if ($percent >= $percentileRange['from'] && $percent <= $percentileRange['to']) {
                     $percentileRange['count']++;
@@ -69,14 +81,31 @@ class ExamController extends Controller
                         'grade' => new GradeResource($grade),
                     );
                     $total++;
-                    $found = true;
                     break;
                 }
             }
             unset($percentileRange); // Unset the reference to avoid unintended changes
 
         }
-        $studentsInStage = Student::where('stage_id', $exam->stage_id)->where('student_status',1)-> count();
+        // foreach ($grades as $grade) {
+        //     $percent = $grade->grade; // percent($exam->max_grade);
+        //     $student = $grade->student;
+        //     if($student->isDisabled()) continue;
+        //     foreach ($arr as &$percentileRange) {
+        //         if ($percent >= $percentileRange['from'] && $percent <= $percentileRange['to']) {
+        //             $percentileRange['count']++;
+        //             $percentileRange['students'][] = array(
+        //                 'student' => new StudentResource($student),
+        //                 'grade' => new GradeResource($grade),
+        //             );
+        //             $total++;
+        //             break;
+        //         }
+        //     }
+        //     unset($percentileRange); // Unset the reference to avoid unintended changes
+
+        // }
+        $studentsInStage = Student::where('stage_id', $exam->stage_id)->where('student_status', 1)->count();
         $studentsNotTakeExam = $studentsInStage - $total;
         return response()->json([
             'exam_absence_count' => $studentsNotTakeExam,
@@ -112,17 +141,18 @@ class ExamController extends Controller
 
 
     public function collectiveExams(Request $request)
-    {   $request->validate([
-        'exam_ids'=>'required|array|exists:exams,id',
-        'stage_id' => 'required|exists:stages,id',
-        'title' => 'required',
-        'exam_date' => 'required|date'
-    ]);
+    {
+        $request->validate([
+            'exam_ids' => 'required|array|exists:exams,id',
+            'stage_id' => 'required|exists:stages,id',
+            'title' => 'required',
+            'exam_date' => 'required|date'
+        ]);
         $sumMaxGrades = Exam::whereIn('id', $request->input('exam_ids'))->sum('max_grade');
         $examIds = $request->input('exam_ids');
-       
-        $students = Student::where('stage_id', 1)->With([
-            'grades' => function ($query)use($examIds) {
+
+        $students = Student::byStage($request->stage_id)->With([
+            'grades' => function ($query) use ($examIds) {
                 $query->whereIn('exam_id', $examIds);
             }
         ])->get();
@@ -130,22 +160,23 @@ class ExamController extends Controller
         $results = [];
         try {
             DB::beginTransaction();
-            $collectiveExam = Exam::create([
+            $collectiveExam = Exam::create(
+                [
                     'title' => $request->title,
-                    'stage_id'=>$request->stage_id,
-                    'created_by'=>$request->user()->id,
-                    'exam_date'=>$request->exam_date,
-                    'max_grade'=>$sumMaxGrades,
+                    'stage_id' => $request->stage_id,
+                    'created_by' => $request->user()->id,
+                    'exam_date' => $request->exam_date,
+                    'max_grade' => $sumMaxGrades,
                 ]
             );
             foreach ($students as $student) {
                 $sumGrades = $student->grades->sum('grade');
-               $grade = Grade::create([
-                    'exam_id'=>$collectiveExam->id,
-                    'student_id'=>$student->id,
-                    'grade'=>$sumGrades,
+                $grade = Grade::create([
+                    'exam_id' => $collectiveExam->id,
+                    'student_id' => $student->id,
+                    'grade' => $sumGrades,
                 ]);
-                
+
             }
             DB::commit();
         } catch (\Throwable $th) {

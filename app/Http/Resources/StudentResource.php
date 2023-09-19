@@ -27,7 +27,7 @@ class StudentResource extends JsonResource
         if ($last_payment !== null) {
             $last_payment = $last_payment->studentPayments()->byStudentID($student->id)->first();
         }
-        $grades = $student->grades()->get();
+        $grades = $student->grades;
         $data = parent::toArray($request);
         $data['stage'] = $stage->title;
         $data['last_payment'] = new StudentPaymentResource($last_payment);
@@ -35,6 +35,9 @@ class StudentResource extends JsonResource
             $data['group_title'] = $group->title;
             $data['group_id'] = $group->id;
 
+        }
+        if($grades){
+            $data['grades'] = GradeResource::collection($grades);
         }
 
         return $data;
