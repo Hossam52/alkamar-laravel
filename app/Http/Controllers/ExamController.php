@@ -57,17 +57,21 @@ class ExamController extends Controller
         }
         $total = 0;
         $students = Student::byStage($exam->stage_id)
-        ->whereHas('grades', function ($query) use ($exam) {
-            $query->where('exam_id', $exam->id);
-        })
-        ->select('students.*', \DB::raw('(SELECT CAST(MAX(grade) AS double) FROM grades WHERE student_id = students.id AND exam_id = '.$exam->id.') as max_grade'))
-      ->orderBy('code', 'asc')
-        ->get()->sortByDesc('max_grade')  ;
+        ->with(['grades' => function ($query) use ($exam) {
+            $query->where('exam_id', '=', $exam->id);
+        }])
+        // ->whereHas('grades', function ($query) use ($exam) {
+        //     $query->where('exam_id','=', $exam->id);
+        //     dd($query);
+        // })
+        ->select('students.*', \DB::raw('(SELECT CAST(grade AS double) FROM grades WHERE student_id = students.id AND exam_id = '.$exam->id.') as max_grade'))
+        ->orderBy('code', 'asc')
+        ->get()
+        ->sortByDesc('max_grade');
         $arr2 = [];
         foreach ($students as $student) {
             if (count($student->grades) == 0)
                 continue;
-
             $grade = $student->grades[0];
             $percent = $grade->grade; // percent($exam->max_grade);
            
