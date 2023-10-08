@@ -34,7 +34,8 @@ class GradeController extends Controller
         $request->validate([
             'exam_id'=>'required|exists:exams,id',
             'student_id'=>'required|exists:students,id',
-            'grade'=>'required|decimal:0,2'
+            'grade'=>'required|decimal:0,2',
+            'group_id'=> 'required|exists:groups,id'
         ]);
         $std = Student::find($request->student_id);
         if($std->isDisabled()){
@@ -57,6 +58,7 @@ class GradeController extends Controller
         
         if($grade){//there is found grade then update it
             $grade->grade = $request->grade;
+            $grade->group_id = $request->group_id;
             $grade->save();
         }else{
             $grade = new Grade($request->all());

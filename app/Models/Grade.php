@@ -25,11 +25,13 @@ class Grade extends Model
     protected $fillable = [
         'exam_id',
         'student_id',
+        'group_id',
         'grade',
     ];
     protected $casts = [
     'exam_id'=>'integer',
     'student_id'=>'integer',
+    'group_id'=>'integer',
     'grade'=>'float'
     ];
 }

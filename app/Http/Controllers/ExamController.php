@@ -31,6 +31,7 @@ class ExamController extends Controller
         $request->validate([
             'exam_id' => 'required|exists:exams,id|integer',
             'division' => 'nullable|max:100',
+            'group_id' => 'nullable|exists:groups,id'
         ]);
         $exam = Exam::where('id', $request->exam_id)->first();
         $maxGrade = $exam->max_grade;
@@ -40,7 +41,6 @@ class ExamController extends Controller
             $division = 4;
         if ($division == 0)
             $division = 1;
-        $grades = $exam->grades()->with('student')->get()->sortByDesc('grade');
         $arr = [];
         $percentile = (int) ($maxGrade / $division);
         for ($i = 0; $i < $division; $i++) {
@@ -57,8 +57,10 @@ class ExamController extends Controller
         }
         $total = 0;
         $students = Student::byStage($exam->stage_id)
-        ->with(['grades' => function ($query) use ($exam) {
+        ->with(['grades' => function ($query) use ($exam,$request) {
             $query->where('exam_id', '=', $exam->id);
+            if(isset($request->group_id))
+                $query->where('group_id','=', $request->group_id);
         }])
         // ->whereHas('grades', function ($query) use ($exam) {
         //     $query->where('exam_id','=', $exam->id);
@@ -109,8 +111,40 @@ class ExamController extends Controller
         //     unset($percentileRange); // Unset the reference to avoid unintended changes
 
         // }
-        $studentsInStage = Student::where('stage_id', $exam->stage_id)->where('student_status', 1)->count();
-        $studentsNotTakeExam = $studentsInStage - $total;
+
+        //********************For calc total students without group_id **********************/
+        // $studentsInStage = Student::where('stage_id', $exam->stage_id)->where('student_status', 1);
+        
+        // if(isset($request->group_id)){
+        //     $studentsInStage->where('group_id',$request->group_id);
+        // }
+        
+        // $studentsInStage = $studentsInStage->count();
+        
+        $groupId = $request->group_id;
+        $totalStudentsCount = DB::table('students')
+        ->where('stage_id',$exam->stage_id)->where('student_status', 1);
+        if(isset($groupId)){
+            $totalStudentsCount = $totalStudentsCount ->leftJoin('grades', 'students.id', '=', 'grades.student_id')
+            ->where('students.group_id', $groupId)
+            ->whereNotNull('grades.student_id');
+        }
+        $totalStudentsCount = $totalStudentsCount->count();
+
+        // Count students from the grades table with the specified group_id and are not found in the students table
+        $studentsFromGradesCount =0;
+        if(isset($groupId)){
+            $studentsFromGradesCount = DB::table('grades')
+            ->leftJoin('students', 'grades.student_id', '=', 'students.id')
+            ->where('students.stage_id',$exam->stage_id)
+            ->where('student_status', 1)
+            ->where('grades.group_id', $groupId)
+            ->whereNull('students.group_id')
+            ->count();
+        }
+
+        $studentsInStage = $totalStudentsCount +$studentsFromGradesCount;
+        $studentsNotTakeExam =  $studentsInStage - $total;
         return response()->json([
             'exam_absence_count' => $studentsNotTakeExam,
             'total_students_count' => $total,

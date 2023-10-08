@@ -25,6 +25,7 @@ class GradeResource extends JsonResource
             'max_grade'=>$exam->max_grade,
             'exam_date'=>$exam->exam_date,
             'grade_id'=>$grade->id,
+            'group_id'=>$grade->group_id,
             'student_id'=>$grade->student_id,
             'grade'=>$grade->grade,
             'exam_id'=>$grade->exam_id,
