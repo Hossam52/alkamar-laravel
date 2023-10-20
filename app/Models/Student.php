@@ -32,7 +32,7 @@ class Student extends Model
         return $this->hasMany(Attendance::class);
     }
     public function payments(){
-        return $this->hasMany(StudentPayment::class)->orderByDesc('payment_id');
+        return $this->hasMany(StudentPayment::class);
     }
 
     protected $appends = ['qr_code_url'];

@@ -28,6 +28,11 @@ class Attendance extends Model
     public function scopeByForgot($query){
         return $this->scopeByAttendStatus($query,3);
     }
+    public function scopeByStudentId($query,$studentId){
+        if(isset($studentId))
+            return $query->where('student_id',$studentId);
+        return $query;
+    }
     public function scopeByAttendStatus($query,$attendStatus){
         if(isset($attendStatus))
             return $query->where('attend_status',$attendStatus);

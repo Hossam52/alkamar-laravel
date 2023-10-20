@@ -27,7 +27,9 @@ class StudentPayment extends Model
         }   
         return $query;
     }
-
+    public function scopeByPaidStatus($query){
+        return $query->whereIn('payment_status',array(1,2));
+    }
     public function scopeByPaymentId($query,$paymentId){
         if(isset($paymentId)){
             return $query->where('payment_id',$paymentId);
