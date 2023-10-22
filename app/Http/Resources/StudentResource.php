@@ -27,10 +27,10 @@ class StudentResource extends JsonResource
         // $last_payments = $student->payments()->byPaidStatus()-> orderBy('payment_id')->take(3)->get();
         
         $lastLecture = Lecture::byStageId($student->stage_id)->orderByDesc('created_at')->skip(1)->take(1)->first();
-        $lastAttendance = $student->attendances()->where('lec_id',$lastLecture->id)->first(); 
+        $lastAttendance =$lastLecture == null? null: $student->attendances()->where('lec_id',$lastLecture->id)->first(); 
        
         $lastPayment = PaymentLookup::byStage($student->stage_id)->orderByDesc('id')->skip(1)->take(1)->first();
-        $lastMonthPayment = $student->payments()->where('payment_id',$lastPayment->id)->first(); 
+        $lastMonthPayment = $lastPayment == null?null:$student->payments()->where('payment_id',$lastPayment->id)->first(); 
         
         $currentMonthPayment = PaymentLookup::byStage($stage->id)->orderByDesc('id')->first();
 
