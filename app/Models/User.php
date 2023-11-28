@@ -14,6 +14,10 @@ class User extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public function getPermissions(){
+        $permissions = json_decode($this->permissions,true);
+        return $permissions;
+    }
     /**
      * The attributes that are mass assignable.
      *
@@ -23,6 +27,8 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'permissions',
+        'role',
     ];
 
     /**
@@ -33,6 +39,9 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
+        'created_at',
+        'updated_at',
+        'email_verified_at'
     ];
 
     /**

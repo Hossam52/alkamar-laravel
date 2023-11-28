@@ -38,57 +38,64 @@ class AttendanceController extends Controller
             'lec_id' => 'required|exists:lectures,id',
             'attend_status' => 'integer|nullable'
         ]);
-        
-        $attendance = Attendance::byLectureId($request->lec_id) ->where('student_id',$request->student_id)->first();
-        $homework = Homework::byLectureId($request->lec_id)->where('student_id',$request->student_id)->first();
-       
-        if($attendance){
-            if(!$request->has('attend_status')){
-                if($homework)$homework->delete();
-                $attendance->delete();
-                return response()->json(['message'=>'تم الغاء حضور الطالب بنجاح']);
-            }
-            return response()->json(['message'=>'تم تسجيل هذا الطالب من قبل في هذه المحاضرة'],400);
+        $user = $request->user();
+
+        $attendance = Attendance::byLectureId($request->lec_id)->where('student_id', $request->student_id)->first();
+        $homework = Homework::byLectureId($request->lec_id)->where('student_id', $request->student_id)->first();
+
+        if ($attendance) {
+            if (!$request->has('attend_status')) {
+                $permissions = auth()->user()->getPermissions()['attendances'];
+                if (isset($permissions) && isset($permissions['delete']) && $permissions['delete']) {
+                    if ($homework)
+                        $homework->delete();
+                    $attendance->delete();
+                    return response()->json(['message' => 'تم الغاء حضور الطالب بنجاح']);
+                } else {
+                    return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+                }
+            } else
+                return response()->json(['message' => 'تم تسجيل هذا الطالب من قبل في هذه المحاضرة'], 400);
         }
-        
-        $lec = Lecture::where('id',$request->lec_id)->first();
-        $std = Student::where('id',$request->student_id)->first();
-       
-      
-        if($std->isDisabled()){
-            return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
+
+        $lec = Lecture::where('id', $request->lec_id)->first();
+        $std = Student::where('id', $request->student_id)->first();
+
+
+        if ($std->isDisabled()) {
+            return response()->json(['message' => 'هذا الطالب متوقف يجب جعله منتظم اولا'], 400);
         }
-        if($lec->stage_id !=$std->stage_id){
-            return response()->json(['message'=>'هذا الطالب غير مسجل في تلك المرحلة'],400);
+        if ($lec->stage_id != $std->stage_id) {
+            return response()->json(['message' => 'هذا الطالب غير مسجل في تلك المرحلة'], 400);
         }
-        if(!$request->has('attend_status')){
+        if (!$request->has('attend_status')) {
             return response()->json([
-                'message'=>'هذا الطالب لم يتم تسجيل حضوره من قبل'
-            ],400);
+                'message' => 'هذا الطالب لم يتم تسجيل حضوره من قبل'
+            ], 400);
         }
         $arr = $request->all();
         $arr['assistant_id'] = $request->user()->id;
         $attendance_record = new Attendance($arr);
         $attendance_record->save();
-        
-       //Make  default when attend student is to make homework to be done
+
+        //Make  default when attend student is to make homework to be done
         $homework = new Homework([
-            'student_id'=>$std->id,
-            'assistant_id'=>$request->user()->id,
-            'lec_id'=>$lec->id,
-            'homework_status'=>1,
+            'student_id' => $std->id,
+            'assistant_id' => $request->user()->id,
+            'lec_id' => $lec->id,
+            'homework_status' => 1,
         ]);
         $homework->save();
-       
 
-        $studentIdsByAssistant = Attendance::byStudentsScanned($request->lec_id,$request->user()->id)->get(['student_id']);
+
+        $studentIdsByAssistant = Attendance::byStudentsScanned($request->lec_id, $request->user()->id)->get(['student_id']);
         $maleStds = Student::byMaleCount($studentIdsByAssistant)->count();
         $femaleStds = Student::byFemaleCount($studentIdsByAssistant)->count();
 
         return response()->json([
             'message' => 'تم تسجيل الحضور بنجاح',
-            'male'=>$maleStds,
-            'female'=>$femaleStds,
+            'male' => $maleStds,
+            'female' => $femaleStds,
             'attendance' => new AttendanceResource($attendance_record)
         ]);
 

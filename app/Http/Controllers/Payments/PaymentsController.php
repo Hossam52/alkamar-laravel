@@ -26,53 +26,59 @@ class PaymentsController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'stage_id'=>'required|exists:stages,id',
-            'title'=>'required',
-            'month'=>'required|integer',
-            'year'=>'required|integer',
+            'stage_id' => 'required|exists:stages,id',
+            'title' => 'required',
+            'month' => 'required|integer',
+            'year' => 'required|integer',
         ]);
-        $payment = PaymentLookup::byStage($request->stage_id)->where('month',$request->month)->where('year',$request->year)->first();
-        if(isset($payment)){
+        $permissions = auth()->user()->getPermissions()['exams'];
+        if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
+        $payment = PaymentLookup::byStage($request->stage_id)->where('month', $request->month)->where('year', $request->year)->first();
+        if (isset($payment)) {
             return response()->json([
-                'message'=>'يوجد مصاريف مضافة من قبل الي هذا التاريخ'
-            ],400);
+                'message' => 'يوجد مصاريف مضافة من قبل الي هذا التاريخ'
+            ], 400);
         }
         $arr = $request->all();
         $arr['created_by'] = $request->user()->id;
-         $payment =  PaymentLookup::create($arr);
+        $payment = PaymentLookup::create($arr);
         return response()->json([
-            'payment'=>$payment,
+            'payment' => $payment,
         ]);
 
 
     }
-    public function payment_stats(Request $request){
+    public function payment_stats(Request $request)
+    {
         $request->validate([
-                'payment_id'=>'required|exists:payment_lookups,id'
-            ]);
-            $payment = PaymentLookup::find($request->payment_id);
-            $stage = Stage::find($payment->stage_id);
-            $students = $stage->students()->byEnabled()-> pluck('id');
-            $disabled = $stage->students()->byDisabled()->count();
-
-            $paidPayment = $payment->studentPayments()->byPaid($students)->count();
-            $payLatePayment = $payment->studentPayments()->byLatePaid($students)->count();
-            $notPaidPayment = $payment->studentPayments()->byNotPaid($students)->count();
-            
-            $notAssigned = count($students)-($paidPayment+$notPaidPayment+$payLatePayment);
-            
-            $totalPaid = $paidPayment + $payLatePayment;
-        return response()->json([
-            'paid'=>$paidPayment,
-            'not_paid'=>$notPaidPayment,
-            'late_paid'=>$payLatePayment,
-            'not_assigned'=>$notAssigned,
-            'disabled'=>$disabled,
-            'total_students'=>count($students),
-            'total_paid'=>$totalPaid,
+            'payment_id' => 'required|exists:payment_lookups,id'
         ]);
-        
-        
+        $payment = PaymentLookup::find($request->payment_id);
+        $stage = Stage::find($payment->stage_id);
+        $students = $stage->students()->byEnabled()->pluck('id');
+        $disabled = $stage->students()->byDisabled()->count();
+
+        $paidPayment = $payment->studentPayments()->byPaid($students)->count();
+        $payLatePayment = $payment->studentPayments()->byLatePaid($students)->count();
+        $notPaidPayment = $payment->studentPayments()->byNotPaid($students)->count();
+
+        $notAssigned = count($students) - ($paidPayment + $notPaidPayment + $payLatePayment);
+
+        $totalPaid = $paidPayment + $payLatePayment;
+        return response()->json([
+            'paid' => $paidPayment,
+            'not_paid' => $notPaidPayment,
+            'late_paid' => $payLatePayment,
+            'not_assigned' => $notAssigned,
+            'disabled' => $disabled,
+            'total_students' => count($students),
+            'total_paid' => $totalPaid,
+        ]);
+
+
     }
     /**
      * Display the specified resource.

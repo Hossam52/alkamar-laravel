@@ -7,7 +7,8 @@ use App\Http\Controllers\{
     UserController, StudentController,
     ExamController, GradeController,
     LectureController, AttendanceController,
-    SearchController,HomeworkController
+    SearchController,HomeworkController,
+    AvailablePermissionsController,
 };
 use App\Http\Controllers\PDF\PDFController;
 use App\Http\Controllers\Payments\{PaymentsController,StudentPaymentsController};
@@ -36,15 +37,19 @@ use App\Http\Middleware\PaginateStudentList;
     //     Route::post('/payments', [StudentPaymentsController::class, 'index']);
 
     // });
-Route::middleware('responseStatus')->group(function(){
-    Route::post("register", [UserController::class, "register"]);
-    Route::post("login", [UserController::class, "login"]);
+    Route::middleware('responseStatus')->group(function(){
+        Route::get('/availablePermissions',[AvailablePermissionsController::class, 'index']);
 
-    Route::get('/stages', [StageController::class, 'index']);
-
-    //With tokens
-    Route::group(["middleware" => ["auth:api"]], function () {
-        Route::prefix('auth')->group(function () {
+        Route::post("register", [UserController::class, "register"]);
+        Route::post("login", [UserController::class, "login"]);
+        
+        Route::get('/stages', [StageController::class, 'index']);
+        
+        //With tokens
+        Route::group(["middleware" => ["auth:api"]], function () {
+            Route::prefix('auth')->group(function () {
+            Route::get("allUsers", [UserController::class, "allUsers"]);
+            Route::post("addPermissions", [UserController::class, "addPermissions"]);
             Route::get("profile", [UserController::class, "profile"]);
             Route::get("attendance_stats", [UserController::class, "getAttendanceStats"]);
             Route::post('update', [UserController::class, 'update']);

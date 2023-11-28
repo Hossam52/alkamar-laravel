@@ -42,7 +42,7 @@ class StudentController extends Controller
             'stage_id' => 'required|exists:stages,id'
         ]);
         $stage_id = $request->stage_id;
-        
+
         $allStudents = Student::byStage($stage_id)->with('grades')->simplePaginate(100);
         $exams = Exam::where('stage_id', $stage_id)->get();
 
@@ -135,15 +135,19 @@ class StudentController extends Controller
             'problems' => 'string|nullable',
             'student_status' => 'boolean|nullable',
         ]);
+        $permissions = auth()->user()->getPermissions()['students'];
+        if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+            $studentData = $request->all();
+            $studentData['created_by'] = $request->user()->id;
+            $student = new Student($studentData);
+            $student->save();
 
-        $studentData = $request->all();
-        $studentData['created_by'] = $request->user()->id;
-        $student = new Student($studentData);
-        $student->save();
+            $student->saveQr();
 
-        $student->saveQr();
-
-        return response()->json(['student' => new StudentResource($student),]);
+            return response()->json(['student' => new StudentResource($student),]);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 
     /**
@@ -212,13 +216,17 @@ class StudentController extends Controller
                 $student->$attribute = $request->input($attribute);
             }
         }
+        $permissions = auth()->user()->getPermissions()['students'];
+        if (isset($permissions) && isset($permissions['update']) && $permissions['update']) {
+            // Save the updated student
+            $student->save();
 
-        // Save the updated student
-        $student->save();
-
-        return response()->json(
-            ['student' => new StudentResource($student)]
-        );
+            return response()->json(
+                ['student' => new StudentResource($student)]
+            );
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 
     /**

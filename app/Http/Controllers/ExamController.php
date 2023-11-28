@@ -57,26 +57,28 @@ class ExamController extends Controller
         }
         $total = 0;
         $students = Student::byStage($exam->stage_id)
-        ->with(['grades' => function ($query) use ($exam,$request) {
-            $query->where('exam_id', '=', $exam->id);
-            if(isset($request->group_id))
-                $query->where('group_id','=', $request->group_id);
-        }])
-        // ->whereHas('grades', function ($query) use ($exam) {
-        //     $query->where('exam_id','=', $exam->id);
-        //     dd($query);
-        // })
-        ->select('students.*', \DB::raw('(SELECT CAST(grade AS double) FROM grades WHERE student_id = students.id AND exam_id = '.$exam->id.') as max_grade'))
-        ->orderBy('code', 'asc')
-        ->get()
-        ->sortByDesc('max_grade');
+            ->with([
+                'grades' => function ($query) use ($exam, $request) {
+                    $query->where('exam_id', '=', $exam->id);
+                    if (isset($request->group_id))
+                        $query->where('group_id', '=', $request->group_id);
+                }
+            ])
+            // ->whereHas('grades', function ($query) use ($exam) {
+            //     $query->where('exam_id','=', $exam->id);
+            //     dd($query);
+            // })
+            ->select('students.*', \DB::raw('(SELECT CAST(grade AS double) FROM grades WHERE student_id = students.id AND exam_id = ' . $exam->id . ') as max_grade'))
+            ->orderBy('code', 'asc')
+            ->get()
+            ->sortByDesc('max_grade');
         $arr2 = [];
         foreach ($students as $student) {
             if (count($student->grades) == 0)
                 continue;
             $grade = $student->grades[0];
             $percent = $grade->grade; // percent($exam->max_grade);
-           
+
             if ($student->isDisabled())
                 continue;
             foreach ($arr as &$percentileRange) {
@@ -114,37 +116,37 @@ class ExamController extends Controller
 
         //********************For calc total students without group_id **********************/
         // $studentsInStage = Student::where('stage_id', $exam->stage_id)->where('student_status', 1);
-        
+
         // if(isset($request->group_id)){
         //     $studentsInStage->where('group_id',$request->group_id);
         // }
-        
+
         // $studentsInStage = $studentsInStage->count();
-        
+
         $groupId = $request->group_id;
         $totalStudentsCount = DB::table('students')
-        ->where('stage_id',$exam->stage_id)->where('student_status', 1);
-        if(isset($groupId)){
-            $totalStudentsCount = $totalStudentsCount ->leftJoin('grades', 'students.id', '=', 'grades.student_id')
-            ->where('students.group_id', $groupId)
-            ->whereNotNull('grades.student_id');
+            ->where('stage_id', $exam->stage_id)->where('student_status', 1);
+        if (isset($groupId)) {
+            $totalStudentsCount = $totalStudentsCount->leftJoin('grades', 'students.id', '=', 'grades.student_id')
+                ->where('students.group_id', $groupId)
+                ->whereNotNull('grades.student_id');
         }
         $totalStudentsCount = $totalStudentsCount->count();
 
         // Count students from the grades table with the specified group_id and are not found in the students table
-        $studentsFromGradesCount =0;
-        if(isset($groupId)){
+        $studentsFromGradesCount = 0;
+        if (isset($groupId)) {
             $studentsFromGradesCount = DB::table('grades')
-            ->leftJoin('students', 'grades.student_id', '=', 'students.id')
-            ->where('students.stage_id',$exam->stage_id)
-            ->where('student_status', 1)
-            ->where('grades.group_id', $groupId)
-            ->whereNull('students.group_id')
-            ->count();
+                ->leftJoin('students', 'grades.student_id', '=', 'students.id')
+                ->where('students.stage_id', $exam->stage_id)
+                ->where('student_status', 1)
+                ->where('grades.group_id', $groupId)
+                ->whereNull('students.group_id')
+                ->count();
         }
 
-        $studentsInStage = $totalStudentsCount +$studentsFromGradesCount;
-        $studentsNotTakeExam =  $studentsInStage - $total;
+        $studentsInStage = $totalStudentsCount + $studentsFromGradesCount;
+        $studentsNotTakeExam = $studentsInStage - $total;
         return response()->json([
             'exam_absence_count' => $studentsNotTakeExam,
             'total_students_count' => $total,
@@ -170,11 +172,17 @@ class ExamController extends Controller
             'max_grade' => 'required|integer',
             'exam_date' => 'required|date'
         ]);
-        $arr = $request->all();
-        $arr['created_by'] = $request->user()->id;
-        $exam = new Exam($arr);
-        $exam->save();
-        return response()->json(['exam' => new ExamResource($exam)]);
+        $permissions = auth()->user()->getPermissions()['exams'];
+        if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+
+            $arr = $request->all();
+            $arr['created_by'] = $request->user()->id;
+            $exam = new Exam($arr);
+            $exam->save();
+            return response()->json(['exam' => new ExamResource($exam)]);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 
 
@@ -251,15 +259,20 @@ class ExamController extends Controller
             'exam_date' => 'nullable',
             'max_grade' => 'nullable',
         ]);
-        $exam = Exam::find($request->exam_id);
-        if (isset($request->title))
-            $exam->title = $request->title;
-        if (isset($request->max_grade))
-            $exam->max_grade = $request->max_grade;
-        if (isset($request->exam_date))
-            $exam->exam_date = $request->exam_date;
-        $exam->save();
-        return response()->json(['exam' => new ExamResource($exam)]);
+        $permissions = auth()->user()->getPermissions()['exams'];
+        if (isset($permissions) && isset($permissions['update']) && $permissions['update']) {
+            $exam = Exam::find($request->exam_id);
+            if (isset($request->title))
+                $exam->title = $request->title;
+            if (isset($request->max_grade))
+                $exam->max_grade = $request->max_grade;
+            if (isset($request->exam_date))
+                $exam->exam_date = $request->exam_date;
+            $exam->save();
+            return response()->json(['exam' => new ExamResource($exam)]);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 
     /**
@@ -268,8 +281,13 @@ class ExamController extends Controller
     public function destroy(Request $request)
     {
         $request->validate(['exam_id' => 'required|exists:exams,id']);
-        $exam = Exam::find($request->exam_id);
-        $exam->delete();
-        return response()->json(['message' => 'تم حذف الامتحان بنجاح']);
+        $permissions = auth()->user()->getPermissions()['exams'];
+        if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+            $exam = Exam::find($request->exam_id);
+            $exam->delete();
+            return response()->json(['message' => 'تم حذف الامتحان بنجاح']);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 }

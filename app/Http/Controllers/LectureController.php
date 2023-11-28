@@ -38,22 +38,26 @@ class LectureController extends Controller
             'lecture_date' => 'required|date'
         ]);
         $groups = Group::byStageId($request->stage_id)->pluck('id')->toArray();
+        $permissions = auth()->user()->getPermissions()['lectures'];
+        if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+            $arr = $request->all();
+            $arr['created_by'] = $request->user()->id;
+            $lec = new Lecture($arr);
+            $lec->save();
 
-        $arr = $request->all();
-        $arr['created_by'] = $request->user()->id;
-        $lec = new Lecture($arr);
-        $lec->save();
+            $arr = [];
+            foreach ($groups as $group) {
+                $arr[$group] = [];
+            }
+            $lec->storeGroup($arr);
 
-        $arr = [];
-        foreach ($groups as $group) {
-            $arr[$group] = [];
+            return response()->json([
+                'message' => 'تم اضافة محاضرة جديدة بنجاح',
+                'lecture' => new LectureResource($lec),
+            ], 201);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
         }
-        $lec->storeGroup($arr);
-
-        return response()->json([
-            'message' => 'تم اضافة محاضرة جديدة بنجاح',
-            'lecture' => new LectureResource($lec),
-        ], 201);
     }
     public function lecStstsArray($group_title, $lectureAttendances, $attends, $late, $forgot, $abscence, $totalStudentsCount, $studentsDiabled)
     {
@@ -155,15 +159,19 @@ class LectureController extends Controller
             'title' => 'nullable',
             'lecture_date' => 'nullable'
         ]);
+        $permissions = auth()->user()->getPermissions()['lectures'];
+        if (isset($permissions) && isset($permissions['update']) && $permissions['update']) {
+            $lecture = Lecture::find($request->lecture_id);
+            if (isset($request->title))
+                $lecture->title = $request->title;
+            if (isset($request->lecture_date))
+                $lecture->lecture_date = $request->lecture_date;
+            $lecture->save();
 
-        $lecture = Lecture::find($request->lecture_id);
-        if (isset($request->title))
-            $lecture->title = $request->title;
-        if (isset($request->lecture_date))
-            $lecture->lecture_date = $request->lecture_date;
-        $lecture->save();
-
-        return response()->json(['lecture' => new LectureResource($lecture)]);
+            return response()->json(['lecture' => new LectureResource($lecture)]);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 
     /**
@@ -172,8 +180,13 @@ class LectureController extends Controller
     public function destroy(Request $request)
     {
         $request->validate(['lecture_id' => 'required|exists:lectures,id']);
-        $lecture = Lecture::find($request->lecture_id);
-        $lecture->delete();
-        return response()->json(['message' => 'تم حذف المحاضرة بنجاح']);
+        $permissions = auth()->user()->getPermissions()['lectures'];
+        if (isset($permissions) && isset($permissions['delete']) && $permissions['delete']) {
+            $lecture = Lecture::find($request->lecture_id);
+            $lecture->delete();
+            return response()->json(['message' => 'تم حذف المحاضرة بنجاح']);
+        } else {
+            return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+        }
     }
 }

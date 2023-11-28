@@ -18,7 +18,7 @@ class StudentPaymentResource extends JsonResource
         $data = parent::toArray($request);
 
         if (isset($payment->payment)) {
-            $paymentLookup = $payment->payment()->first();
+            $paymentLookup = $payment->payment;
             return (
                 [
                     'id' => $payment->id,
@@ -31,6 +31,7 @@ class StudentPaymentResource extends JsonResource
                     'student_id' => $payment->student_id,
                     'payment_status' => $payment->payment_status,
                     'payment_id' => $payment->payment_id,
+                    'created_at' => $payment->created_at,
                   
                 ]
             );

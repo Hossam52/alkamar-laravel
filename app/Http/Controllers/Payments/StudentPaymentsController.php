@@ -41,27 +41,37 @@ class StudentPaymentsController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'student_id'=>'required|exists:students,id',
-            'payment_id'=>'required|exists:payment_lookups,id',
-            'payment_status'=>'required|in:1,2,3'
+            'student_id' => 'required|exists:students,id',
+            'payment_id' => 'required|exists:payment_lookups,id',
+            'payment_status' => 'required|in:1,2,3'
         ]);
+
         $payment = StudentPayment::byStudentID($request->student_id)->byPaymentId($request->payment_id)->first();
         $student = Student::find($request->student_id);
-        if($student->isDisabled()){
-            return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
+        if ($student->isDisabled()) {
+            return response()->json(['message' => 'هذا الطالب متوقف يجب جعله منتظم اولا'], 400);
         }
-        if($payment){
-            $payment->payment_status = $request->payment_status;
-            $payment->save();
+        if ($payment) {
+            $permissions = auth()->user()->getPermissions()['student_payments'];
+            if (isset($permissions) && isset($permissions['update']) && $permissions['update']) {
+                $payment->payment_status = $request->payment_status;
+                $payment->save();
+            } else {
+                return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+            }
             // return response()->json(['message'=>'هذا الطالب قد دفع مسبقا يوم '. Carbon::parse($payment->created_at)->format('Y-m-d')],400);
+        } else {
+            $permissions = auth()->user()->getPermissions()['student_payments'];
+            if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+                $arr = $request->all();
+                $arr['created_by'] = $request->user()->id;
+                $payment = StudentPayment::create($arr);
+            } else {
+                return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+            }
+
         }
-        else{
-            $arr = $request->all();
-            $arr['created_by'] = $request->user()->id;
-            $payment = StudentPayment::create($arr);
-            
-        }
-        return response()->json(['payment'=>new StudentPaymentResource($payment)]);
+        return response()->json(['payment' => new StudentPaymentResource($payment)]);
     }
 
     /**

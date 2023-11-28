@@ -20,6 +20,7 @@ class UserResource extends JsonResource
         $user =  $this->resource;
 
         $data = parent::toArray($request);
+        $data['permissions'] = json_decode($data['permissions']);
         
         return $data;
     }

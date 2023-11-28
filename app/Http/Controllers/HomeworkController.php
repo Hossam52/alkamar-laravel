@@ -38,8 +38,8 @@ class HomeworkController extends Controller
             'homework_status' => 'required|integer'
         ]);
         $std = Student::find($request->student_id);
-        if($std->isDisabled()){
-            return response()->json(['message'=>'هذا الطالب متوقف يجب جعله منتظم اولا'],400);
+        if ($std->isDisabled()) {
+            return response()->json(['message' => 'هذا الطالب متوقف يجب جعله منتظم اولا'], 400);
         }
 
         $lec = Lecture::find($request->lec_id);
@@ -47,17 +47,26 @@ class HomeworkController extends Controller
             return response()->json(['message' => 'هذا الطالب غير مسجل في تلك المرحلة'], 400);
         }
 
-        $attendance = Attendance::where('student_id',$std->id)->where('lec_id',$lec->id)->first();
-        if(!$attendance){
-            return response()->json(['message'=>'يجب تحضير الطالب اولا في المحاضرة قبل اضافة الواجب'],400);
+        $attendance = Attendance::where('student_id', $std->id)->where('lec_id', $lec->id)->first();
+        if (!$attendance) {
+            return response()->json(['message' => 'يجب تحضير الطالب اولا في المحاضرة قبل اضافة الواجب'], 400);
         }
         $homeworkRecord = Homework::byLectureId($request->lec_id)->where('student_id', $request->student_id)->first();
 
         if ($homeworkRecord) {
+            $permissions = auth()->user()->getPermissions()['homeworks'];
+            if (isset($permissions) && isset($permissions['update']) && $permissions['update']) {
+            } else {
+                return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+            }
             $homeworkRecord->homework_status = $request->homework_status;
             $homeworkRecord->save();
         } else {
-
+            $permissions = auth()->user()->getPermissions()['homeworks'];
+            if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
+            } else {
+                return response()->json(['message' => 'ليس لديك صلاحية للقيام بهذا'], 401);
+            }
 
             $arr = $request->all();
             $arr['assistant_id'] = $request->user()->id;
