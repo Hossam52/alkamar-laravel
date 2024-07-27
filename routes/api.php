@@ -64,6 +64,7 @@ use App\Http\Middleware\PaginateStudentList;
             Route::post('/generate_pdf',[PDFController::class, 'generatePDF']);
             
             Route::post('/create', [StudentController::class, 'store']);
+            Route::post('/createEmptyStudents', [StudentController::class, 'createEmptyStudents']);
             Route::post('/profile', [StudentController::class, 'show']);
             Route::post('/update', [StudentController::class, 'update']);
             

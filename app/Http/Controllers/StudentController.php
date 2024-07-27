@@ -25,6 +25,7 @@ use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
+
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
@@ -115,10 +116,8 @@ class StudentController extends Controller
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+
+    public function createStudentBlock(Request $request)
     {
         $request->validate([
             'stage_id' => 'required|integer',
@@ -135,14 +134,26 @@ class StudentController extends Controller
             'problems' => 'string|nullable',
             'student_status' => 'boolean|nullable',
         ]);
+
+        $studentData = $request->all();
+        $studentData['created_by'] = $request->user()->id;
+        $student = new Student($studentData);
+        $student->save();
+
+        $student->saveQr();
+        return $student;
+    }
+    /**
+     * Store a newly created resource in storage.
+     */
+
+    public function store(Request $request)
+    {
+
         $permissions = auth()->user()->getPermissions()['students'];
         if (isset($permissions) && isset($permissions['create']) && $permissions['create']) {
-            $studentData = $request->all();
-            $studentData['created_by'] = $request->user()->id;
-            $student = new Student($studentData);
-            $student->save();
 
-            $student->saveQr();
+            $student = $this->createStudentBlock($request);
 
             return response()->json(['student' => new StudentResource($student),]);
         } else {
@@ -236,7 +247,84 @@ class StudentController extends Controller
     {
         //
     }
+
+    public function generateUniqueCode($initialCode)
+    {
+        $code = $initialCode;
+        while (Student::where('code', $code)->exists()) {
+            $code .= '0';
+        }
+        return $code;
+    }
+
+    public function getMinMaxCodeInStage($stage_id){
+        $codes = Student::where('stage_id', $stage_id)
+        ->select('code')
+        ->get()
+        ->pluck('code')
+        ->filter(function ($code) {
+            return is_numeric($code);
+        })
+        ->map(function ($code) {
+            return intval($code);
+        });
+        $maxCode = $codes->max();
+        $minCode = $codes->min();
+        return ['max'=>$maxCode,'min'=>$minCode];
+
+    }
+    public function createEmptyStudents(Request $request)
+    {
+        $request->validate([
+            'stage_id' => 'required|exists:stages,id',
+            'count' => 'required|numeric|min:1|max:300',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            $minMaxCodes = $this->getMinMaxCodeInStage($request->stage_id);
+            $maxCode = $minMaxCodes['max'];
+            $minCode = $minMaxCodes['min'];
+            $newCode = $maxCode;
+            if($newCode==null)$newCode = $minCode = Student::max('code');
+            if (Student::where('code', $newCode + 1)->exists()) {
+                $newCode = $this->generateUniqueCode($minCode);
+            }
+            $assignedCodes = [];
+            for ($i = 1; $i <= $request->count; $i++) {
+
+
+
+                $studentRequest = $request->merge([
+                    'code' => $newCode + $i,
+                    'name' => '.',
+                    'gender' => 'male',
+                    'student_status'=>false
+                    // Add other fields as needed
+                ]);
+
+                $student = $this->createStudentBlock($studentRequest);
+                $assignedCodes[] = $newCode+$i;
+
+
+            }
+            \DB::commit();
+            return response()->json(['message' => 'تم تسجيل الطلاب بنجاح', 'codes' => $assignedCodes]);
+
+            //code...
+        } catch (\Throwable $th) {
+            //throw $th;      
+            \DB::rollBack();
+            return response()->json(['message' => 'لقد حدث خطأ برجاء المحاولة مرة اخري \n ' . $th->getMessage()], 400);
+
+
+        }
+    }
 }
+
+
+
 /*
 // Retrieve all students along with their grades (if available)
     $students = Student::with(['grades' => function ($query) {
