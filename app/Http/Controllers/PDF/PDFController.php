@@ -24,7 +24,7 @@ class PDFController extends Controller
         
 
         // Fetch the student data from the database based on the student IDs
-        $students = Student:: whereIn('id', $studentIds)->orderBy('code')->get();
+        $students = Student:: whereIn('id', $studentIds)->orderByRaw('CAST(code AS UNSIGNED)')->get();
 
         // Generate the PDF
         $pdf = PDF::loadView('pdf.student_qr_codes', compact('students'));
